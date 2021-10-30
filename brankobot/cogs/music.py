@@ -25,19 +25,20 @@ DEALINGS IN THE SOFTWARE.
 '''
 
 import asyncio
+import time
 from contextlib import suppress
 from datetime import datetime
 from functools import partial
 from textwrap import dedent
-from typing import Any
 
 import discord
 from async_timeout import timeout
 from discord.ext import commands
 from discord.ext.menus.views import ViewMenuPages
-from humanize import intcomma, precisedelta
+from humanize import intcomma
 from youtube_dl import YoutubeDL
 
+from .utils.enums import Emote
 from .utils.checks import channel_check, is_connected, role_check
 from .utils.errors import (EmptyQueue, InvalidVolume, NotPlaying,
                            VoiceChannelError)
@@ -67,6 +68,8 @@ class YTDLSource(discord.PCMVolumeTransformer):
         self.webpage_url = data.get('webpage_url')
         self.duration = data.get('duration')
         self.view_count = data.get('view_count')
+        self.likes = data.get('like_count')
+        self.dislikes = data.get('dislike_count')
         self.uploader = data.get('uploader')
         self.uploader_url = data.get('uploader_url')
         self.thumbnail = data.get('thumbnails', [{'url': None}])[0]['url']
@@ -105,6 +108,8 @@ class YTDLSource(discord.PCMVolumeTransformer):
                 'webpage_url': data.get('webpage_url'),
                 'duration': data.get('duration'),
                 'view_count': data.get('view_count'),
+                'likes': data.get('like_count'),
+                'dislikes': data.get('dislike_count'),
                 'uploader': data.get('uploader'),
                 'uploader_url': data.get('uploader_url'),
                 'upload_date': datetime.strptime(data.get('upload_date'), '%Y%m%d'),
@@ -133,7 +138,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
 
 class MusicPlayer:
-    __slots__ = ('bot', 'ctx', 'queue', 'next', 'current', 'now_playing', 'volume')
+    __slots__ = ('bot', 'ctx', 'started_playing_at', 'queue', 'next', 'current', 'now_playing', 'volume')
 
     def __init__(self, ctx: commands.Context):
         self.bot = ctx.bot
@@ -141,7 +146,8 @@ class MusicPlayer:
         self.queue = asyncio.Queue()
         self.next = asyncio.Event()
         self.volume = 0.5
-        self.current = None
+        self.current: YTDLSource = None
+        self.started_playing_at: float = None
         self.now_playing: discord.Message = None
         ctx.bot.loop.create_task(self.player_loop())
 
@@ -175,6 +181,7 @@ class MusicPlayer:
             source.volume = self.volume
             self.current = source
             self.ctx.guild.voice_client.play(source, after=after)
+            self.started_playing_at = time.perf_counter()
             msg = dedent(f'''
                 **Song:** [{source.title}]({source.webpage_url})
                 **Requested by:** {source.requester.mention}
@@ -376,20 +383,29 @@ class Music(commands.Cog):
         with suppress(discord.HTTPException):
             await player.now_playing.delete()
 
+        # Calculate progress into song
         source = voice_client.source
-        msg = dedent(f'''
-            **Song:** [{source.title}]({source.webpage_url})
-            **Channel** [{source.uploader}]({source.uploader_url})
-            **Requested by:** {source.requester.mention}
-            **Views:** {intcomma(source.view_count)}
-            **Uploaded:** {discord.utils.format_dt(source.upload_date)}
-            **Duration:** {precisedelta(source.duration)}
-        ''')
+        passed = time.perf_counter() - player.started_playing_at
+        progress = passed / source.duration
+        leftover = 1.0 - progress
+        tf = lambda s: time.strftime('%M:%S', time.gmtime(s))
+
+        # Create YT-like progress bar
+        bar = str(Emote.start) + (round(progress * 10) * str(Emote.center_full)) + str(Emote.middle) + (round(leftover * 10) * str(Emote.center_empty)) + str(Emote.end)
+        fields = [
+            ('Song', f"[{source.title}]({source.webpage_url})"),
+            ('Channel', f"[{source.uploader}]({source.uploader_url})"),
+            ('Requested by', source.requester.mention),
+            ('Views', intcomma(source.view_count)),
+            ('Likes/Dislikes', f"{intcomma(source.likes)}/{intcomma(source.dislikes)}"),
+            ('Uploaded', discord.utils.format_dt(source.upload_date, 'R'))
+        ]
         player.now_playing = await ctx.send_response(
-            msg,
+            f"{bar} ({tf(passed)}/{tf(source.duration)})",
             title='Now Playing',
             thumbnail=source.thumbnail,
-            show_invoke_speed=False
+            show_invoke_speed=False,
+            fields=fields
         )
 
 
