@@ -242,8 +242,9 @@ class Bot(commands.Bot):
                     mention_author=False
                 )
 
-        logger = logging.getLogger('brankobot')
-        logger.exception('Unexpected error')
+        else:
+            logger = logging.getLogger('brankobot')
+            logger.exception('Unexpected error')
 
 
     async def delete_reminder(self, reminder: Reminder):
@@ -341,7 +342,8 @@ class Bot(commands.Bot):
 
     @lru_cache(maxsize=64)
     def search_achievement(self, achievement_search: str, key: str = 'internal_name') -> Achievement:
-        """Searches for an achievement by key in internal list
+        '''Cached
+        Searches for an achievement by key in internal list
 
         Args:
             achievement_search (str): The string to search by
@@ -349,7 +351,7 @@ class Bot(commands.Bot):
 
         Returns:
             Achievement: The achievement, if found
-        """
+        '''
         possibilities = {getattr(v, key): k for k, v in self.ACHIEVEMENTS.items()}
         matches = get_close_matches(
             achievement_search,
@@ -363,7 +365,8 @@ class Bot(commands.Bot):
 
     @lru_cache(maxsize=256)
     def search_tank(self, tank_search: str, key: str = 'internal_name') -> Tank:
-        '''Searches a tank by key in internal list
+        '''Cached
+        Searches a tank by key in internal list
 
         Args:
             tank_search (str): The string to search by
