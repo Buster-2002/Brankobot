@@ -185,6 +185,13 @@ class Emote(_StrIsValue, Enum):
     rolling_eyes    = ':rolling_eyes:'
     mad             = ':triumph:'
 
+    # PLAYBAR
+    start        = '<:start:904076967492595792>'
+    end          = '<:end:904076967538733106>'
+    middle       = '<:middle:904076967622631464>'
+    center_empty = '<:center_empty:904076967505174528>'
+    center_full  = '<:center_full:904076967190618193>'
+
     # MASTERY
     mastery      = '<:mastery:870650067541962802>'
     first_class  = '<:first_class:870650067395182592>'
