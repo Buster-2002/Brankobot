@@ -73,28 +73,34 @@ class Events(commands.Cog):
             'shut up {}': 15,
             f'{Emote.shush}': 15,
             'i did not ask tho': 15,
+
             'please be quiet in the back of the bus': 10,
             f'can you dont {Emote.rolling_eyes}': 10,
+
             f'behave yourself or we\'ll end the ride early {Emote.mad}': 5,
             'did you mean to mention <@!331395741585244162>?': 5,
             'https://cdn.discordapp.com/attachments/724542301543727134/737432024373133312/04264c87b5ff12243395b867730e11e940c6f6efv2_00.png': 5,
         }
         self._join_responses = {
-            'who you {}': 20,
-            '{} who you be': 20,
-            'new guy {} who dis': 20,
+            'who you {}': 16,
+            '{} who you be': 16,
+            'new guy {} who dis': 16,
+
             f'who dis one {{}} {Emote.eyes}': 12,
             '{} new phon who dis': 12,
             'hi {}': 12,
             'shalom {}': 12,
-            'siema pl {}': 6,
-            '{}; do you sexually abuse busses too': 6,
-            'ah, {}, a new one to ride my bus': 6,
-            f'{{}} {Emote.bus} WROOM WROOM!': 6,
-            'my bus is open, please enter {}': 6,
-            f'would you like to see my \'bus\' {{}} {Emote.eyes}': 6,
-            f'{Emote.oncoming_bus} is the last thing they see {{}}': 3,
-            'hi {}!\ntoo slow <@!331395741585244162>': 3
+
+            'siema pl {}': 8,
+            '{}; do you sexually abuse busses too': 8,
+            'ah, {}, a new one to ride my bus': 8,
+            f'{{}} {Emote.bus} WROOM WROOM!': 8,
+            'my bus is open, please enter {}': 8,
+            f'would you like to see my \'bus\' {{}} {Emote.eyes}': 8,
+
+            f'{Emote.oncoming_bus} is the last thing they see {{}}': 4,
+
+            'hi {}!\ntoo slow <@!331395741585244162>': 2
         }
         self._reminder_replies = (
             'you wanted me to remind you',
