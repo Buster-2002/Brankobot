@@ -1,0 +1,17 @@
+matplotlib
+aiohttp
+humanize
+pythonping
+dateparser
+iso639
+aiosqlite
+async_lru
+beautifulsoup4
+Pillow
+python-dotenv
+PyNaCl
+youtube_dl
+async_timeout
+git+https://github.com/Rapptz/discord.py
+git+https://github.com/oliver-ni/discord-ext-menus-views
+git+https://github.com/Rapptz/discord-ext-menus

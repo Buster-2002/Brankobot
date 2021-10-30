@@ -1,0 +1,9 @@
+*.pyc
+*.log
+*.env
+*.db
+*.db-journal
+__pycache__/
+/convert_commands.json.py
+/brankobot/battle_data.json
+/brankobot/meta_data.json

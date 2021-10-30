@@ -1,0 +1,398 @@
+{
+    "35": {
+        "internal_name": "invader",
+        "emote_name": "invader",
+        "name": "Invader",
+        "description": "Earn at least 80 capture points on the enemy base."
+    },
+    "37": {
+        "internal_name": "defender",
+        "emote_name": "defender",
+        "name": "Defender",
+        "description": "Reduce the number of enemy capture points of a friendly base by 70 or more."
+    },
+    "40": {
+        "internal_name": "scout",
+        "emote_name": "scout",
+        "name": "Scout",
+        "description": "Detect at least 9 enemy vehicles."
+    },
+    "50": {
+        "internal_name": "medalOrlik",
+        "emote_name": "orlik",
+        "name": "Orlik's Medal",
+        "description": "Destroy 2 or more enemy tanks or tank destroyers in a light tank in one battle."
+    },
+    "51": {
+        "internal_name": "medalOskin",
+        "emote_name": "oskin",
+        "name": "Oskin's Medal",
+        "description": "Destroy 3 enemy tanks or tank destroyers in a medium tank in one battle."
+    },
+    "52": {
+        "internal_name": "medalHalonen",
+        "emote_name": "halonen",
+        "name": "Halonen's Medal",
+        "description": "Destroy at least 2 enemy tanks or tank destroyers in a tank destroyer in one battle."
+    },
+    "53": {
+        "internal_name": "medalBurda",
+        "emote_name": "burda",
+        "name": "Burda's Medal",
+        "description": "Destroy 3 enemy SPGs in one battle."
+    },
+    "54": {
+        "internal_name": "medalBillotte",
+        "emote_name": "billotte",
+        "name": "Billotte's Medal",
+        "description": "Destroy at least 2 enemy vehicles while having 5 different modules damaged or crew members injured and losing 80% of hit points."
+    },
+    "55": {
+        "internal_name": "medalKolobanov",
+        "emote_name": "kolobanov",
+        "name": "Kolobanov's Medal",
+        "description": "Stand alone against at least five enemy vehicles and win."
+    },
+    "56": {
+        "internal_name": "medalFadin",
+        "emote_name": "fadin",
+        "name": "Fadin's Medal",
+        "description": "Destroy the last enemy vehicle in the battle with the last shell in the ammo."
+    },
+    "76": {
+        "internal_name": "medalTarczay",
+        "emote_name": "tarczay",
+        "name": "Tarczay's Medal",
+        "description": "Destroy at least 5 enemy vehicles while having 5 different modules damaged or crew members injured and losing 80% of hit points."
+    },
+    "77": {
+        "internal_name": "medalPascucci",
+        "emote_name": "pascucci",
+        "name": "Pascucci's Medal",
+        "description": "Destroy 2 enemy SPGs in one battle."
+    },
+    "78": {
+        "internal_name": "medalBurda",
+        "emote_name": "dumitru",
+        "name": "Burda's Medal",
+        "description": "Destroy 3 enemy SPGs in one battle."
+    },
+    "61": {
+        "internal_name": "raider",
+        "emote_name": "raider",
+        "name": "Raider",
+        "description": "Remain undetected throughout the entire battle and be the only player who captures the enemy base."
+    },
+    "64": {
+        "internal_name": "kamikaze",
+        "emote_name": "kamikaze",
+        "name": "Kamikaze",
+        "description": "Destroy at least one enemy vehicle by ramming it."
+    },
+    "298": {
+        "internal_name": "medalGore",
+        "emote_name": "gore",
+        "name": "Gore's Medal",
+        "description": "Drive an SPG and cause damage exceeding 8 times the hit points of your vehicle."
+    },
+    "300": {
+        "internal_name": "medalStark",
+        "emote_name": "stark",
+        "name": "Stark's Medal",
+        "description": "While driving an SPG, destroy at least 2 enemy vehicles and receive at least 2 enemy hits that cause damage or are blocked by armor."
+    },
+    "147": {
+        "internal_name": "bombardier",
+        "emote_name": "bombardier",
+        "name": "Bombardier",
+        "description": "Destroy at least 2 enemy vehicles with one shell."
+    },
+    "523": {
+        "internal_name": "duelist",
+        "emote_name": "duelist",
+        "name": "Duelist",
+        "description": "Destroy at least 2 enemy vehicles that caused damage to your vehicle in the battle."
+    },
+    "522": {
+        "internal_name": "fighter",
+        "emote_name": "fighter",
+        "name": "Fighter",
+        "description": "Destroy four or five enemy vehicles in one battle."
+    },
+    "525": {
+        "internal_name": "arsonist",
+        "emote_name": "arsonist",
+        "name": "Arsonist",
+        "description": "Destroy at least one enemy vehicle by setting it on fire."
+    },
+    "34": {
+        "internal_name": "warrior",
+        "emote_name": "top_gun",
+        "name": "Top Gun",
+        "description": "Destroy enemy vehicles: 6 and more \u2014 Standard Battle, Assault, Encounter. 8 and more \u2014 Grand Battle."
+    },
+    "38": {
+        "internal_name": "steelwall",
+        "emote_name": "steel_wall",
+        "name": "Steel Wall",
+        "description": "Receive the highest damage blocked by armor."
+    },
+    "39": {
+        "internal_name": "supporter",
+        "emote_name": "confederate",
+        "name": "Confederate",
+        "description": "Cause damage or critical hits to more enemy vehicles, at least 6, than any other player."
+    },
+    "72": {
+        "internal_name": "evileye",
+        "emote_name": "patrol_duty",
+        "name": "Patrol Duty",
+        "description": "Help your team damage at least 6 enemy vehicles by spotting them."
+    },
+    "227": {
+        "internal_name": "sniper",
+        "emote_name": "tank_sniper",
+        "name": "Sniper",
+        "description": "Achieve at least 85% hits out of a minimum of 10 shots fired with potential damage of 1,000 HP or more."
+    },
+    "228": {
+        "internal_name": "mainGun",
+        "emote_name": "high_caliber",
+        "name": "High Caliber",
+        "description": "Cause the highest damage in a battle."
+    },
+    "232": {
+        "internal_name": "geniusForWarMedal",
+        "emote_name": "war_genius",
+        "name": "War Genius",
+        "description": "In 100 battles, be the top player by experience earned."
+    },
+    "230": {
+        "internal_name": "wolfAmongSheepMedal",
+        "emote_name": "wolf_among_sheep",
+        "name": "Wolf Among Sheep",
+        "description": "Win 100 battles and be the top player by damage caused."
+    },
+    "73": {
+        "internal_name": "medalRadleyWalters",
+        "emote_name": "radley_walters",
+        "name": "Radley-Walters's Medal",
+        "description": "Destroy enemy vehicles: 8-9 \u2014 Standard Battle, Assault, Encounter. 10-12 \u2014 Grand Battle."
+    },
+    "74": {
+        "internal_name": "medalLafayettePool",
+        "emote_name": "pool",
+        "name": "Pool's Medal",
+        "description": "Destroy enemy vehicles: 10-13 \u2014 Standard Battle, Assault, Encounter. 13-20 \u2014 Grand Battle."
+    },
+    "75": {
+        "internal_name": "medalBrunoPietro",
+        "emote_name": "bruno",
+        "name": "Bruno's Medal",
+        "description": "Destroy 3-4 enemy vehicles while having 5 different modules damaged or crew members injured and losing 80% of hit points."
+    },
+    "62": {
+        "internal_name": "handOfDeath",
+        "emote_name": "reaper",
+        "name": "Reaper",
+        "description": "Destroy at least three enemy vehicles in a row. The second and all consecutive vehicles must be destroyed with a single shell each."
+    },
+    "10": {
+        "internal_name": "medalNikolas",
+        "emote_name": "nicols",
+        "name": "Nicols's Medal",
+        "description": "Destroy at least 4 enemy tanks or tank destroyers with a medium tank in one battle."
+    },
+    "106": {
+        "internal_name": "medalLehvaslaiho",
+        "emote_name": "lehveslaiho",
+        "name": "Lehv\u00e4slaiho's Medal",
+        "description": "Destroy 2 enemy tanks or tank destroyers in a medium tank in one battle."
+    },
+    "110": {
+        "internal_name": "heroesOfRassenay",
+        "emote_name": "raseiniai",
+        "name": "Raseiniai Heroes' Medal",
+        "description": "Destroy enemy vehicles: 14 and more \u2014 Standard Battle, Assault, Encounter. 21 and more \u2014 Grand Battle."
+    },
+    "145": {
+        "internal_name": "medalDeLanglade",
+        "emote_name": "de_langlade",
+        "name": "De Langlade's Medal",
+        "description": "Destroy at least 4 enemy vehicles while they are attempting to capture the base in one battle."
+    },
+    "146": {
+        "internal_name": "medalTamadaYoshio",
+        "emote_name": "yoshio_tamada",
+        "name": "Yoshio Tamada's Medal",
+        "description": "Destroy at least 2 enemy SPGs in a light tank in one battle."
+    },
+    "148": {
+        "internal_name": "huntsman",
+        "emote_name": "naidin",
+        "name": "Naydin's Medal",
+        "description": "Destroy all enemy light tanks (at least 3) in the course of one battle."
+    },
+    "237": {
+        "internal_name": "tacticalBreakthrough",
+        "emote_name": "tactical_genius",
+        "name": "Tactical Genius",
+        "description": "Win at least 3 battles in a row as a member of a random team."
+    },
+    "297": {
+        "internal_name": "medalAntiSpgFire",
+        "emote_name": "counter_battery_fire",
+        "name": "For Counter-Battery Fire",
+        "description": "In a battle, destroy all enemy SPGs (at least 2) with an SPG."
+    },
+    "299": {
+        "internal_name": "medalCoolBlood",
+        "emote_name": "cold_blood",
+        "name": "Cold-Blooded",
+        "description": "Destroy at least 2 enemy light tanks from a distance of not more than 100 meters."
+    },
+    "289": {
+        "internal_name": "willToWinSpirit",
+        "emote_name": "will_to_win",
+        "name": "Will-to-Win Spirit",
+        "description": "Fight alone against at least 3 enemy vehicles and win the battle."
+    },
+    "517": {
+        "internal_name": "impenetrable",
+        "emote_name": "shell_proof",
+        "name": "Shellproof",
+        "description": "Have total damage blocked by armor exceed the hit points of your vehicle."
+    },
+    "521": {
+        "internal_name": "shootToKill",
+        "emote_name": "shoot_to_kill",
+        "name": "Fire for Effect",
+        "description": "Cause more damage to enemy vehicles than the hit points of your vehicle."
+    },
+    "529": {
+        "internal_name": "aimer",
+        "emote_name": "spotter",
+        "name": "Spotter",
+        "description": "Spot enemy vehicles, enabling your allies to cause 1,000 HP of damage in one battle."
+    },
+    "143": {
+        "internal_name": "medalBrothersInArms",
+        "emote_name": "brothers_in_arms",
+        "name": "Brothers in Arms",
+        "description": "Each Platoon member must destroy at least 3 enemy vehicles."
+    },
+    "144": {
+        "internal_name": "medalCrucialContribution",
+        "emote_name": "crucial_contribution",
+        "name": "Crucial Contribution",
+        "description": "Platoon must destroy at least 12 enemy vehicles."
+    },
+    "236": {
+        "internal_name": "armoredFist",
+        "emote_name": "armored_fist",
+        "name": "Armored Fist",
+        "description": "Destroy all enemy vehicles while losing only one friendly vehicle."
+    },
+    "150": {
+        "internal_name": "sturdy",
+        "emote_name": "spartan",
+        "name": "Spartan",
+        "description": "Survive a ricochet or non-penetrating hit from an enemy team player. Your vehicle must have less than 10% of its hit points left."
+    },
+    "151": {
+        "internal_name": "ironMan",
+        "emote_name": "cool_headed",
+        "name": "Cool-Headed",
+        "description": "Survive at least 10 ricochets and non-penetrating hits in a row from enemy team players."
+    },
+    "152": {
+        "internal_name": "luckyDevil",
+        "emote_name": "lucky",
+        "name": "Lucky",
+        "description": "Witness an enemy vehicle being hit and destroyed by another enemy team player. You must be 10 meters or closer from the enemy vehicle at the moment of its destruction."
+    },
+    "233": {
+        "internal_name": "kingOfTheHill",
+        "emote_name": "king_of_the_hill",
+        "name": "King of the Hill",
+        "description": "Be the only survivor while driving a tank or a tank destroyer."
+    },
+    "286": {
+        "internal_name": "godOfWar",
+        "emote_name": "god_of_war",
+        "name": "God of War",
+        "description": "While driving an SPG, be the last survivor and win the battle."
+    },
+    "296": {
+        "internal_name": "medalMonolith",
+        "emote_name": "rock_solid",
+        "name": "Rock Solid",
+        "description": "When driving an SPG, survive the ramming that destroys an enemy vehicle."
+    },
+    "479": {
+        "internal_name": "noMansLand",
+        "emote_name": "no_mans_land",
+        "name": "Scorched Earth",
+        "description": "End a battle in a draw where both teams are completely destroyed."
+    },
+    "526": {
+        "internal_name": "bonecrusher",
+        "emote_name": "bruiser",
+        "name": "Bruiser",
+        "description": "Damage enemy vehicles' modules or injure crew members at least five times in a battle."
+    },
+    "527": {
+        "internal_name": "charmed",
+        "emote_name": "hand_of_god",
+        "name": "Hand of God",
+        "description": "Survive and win the battle, having received damage from at least four different enemy vehicles."
+    },
+    "524": {
+        "internal_name": "demolition",
+        "emote_name": "demolition_expert",
+        "name": "Demolition Expert",
+        "description": "Destroy at least one enemy vehicle by causing its ammunition to explode."
+    },
+    "528": {
+        "internal_name": "even",
+        "emote_name": "eye_for_an_eye",
+        "name": "Eye for an Eye!",
+        "description": "Simultaneously destroy, and be destroyed, by the same enemy."
+    },
+    "536": {
+        "internal_name": "firstMerit",
+        "emote_name": "first_merit",
+        "name": "First Merit",
+        "description": "Complete any mission in any set of the selected operation."
+    },
+    "588": {
+        "internal_name": "operationWinter",
+        "emote_name": "operation_winter",
+        "name": "Operation Winter",
+        "description": "Win the battle."
+    },
+    "589": {
+        "internal_name": "tacticalAdvantage",
+        "emote_name": "tactical_superiority",
+        "name": "Tactical Superiority",
+        "description": "Destroy all enemy vehicles while losing only one vehicle of the lowest tier on your team."
+    },
+    "591": {
+        "internal_name": "tacticalSkill",
+        "emote_name": "tactical_supremacy",
+        "name": "Tactical Supremacy",
+        "description": "Win the battle by destroying all enemy vehicles while not losing any allied vehicles."
+    },
+    "592": {
+        "internal_name": "secretOperations",
+        "emote_name": "sudden_strike",
+        "name": "Sudden Strike",
+        "description": "Win the battle by capturing the enemy base with a group of at least 2 allied vehicles or with at least 1 vehicle of each team capturing both bases at the same time."
+    },
+    "599": {
+        "internal_name": "testartilleryman",
+        "emote_name": "rocket_scientist",
+        "name": "Rocket Scientist",
+        "description": "Complete a special mission and receive a secret weapon."
+    }
+}
