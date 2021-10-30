@@ -124,10 +124,10 @@ class WoT(commands.Cog):
 
         Returns:
             Tuple[str, Tuple[int, int], int, int, int]:
-            Image size for herhor.net, image size as tuple, footer bar height,
+            Image size for herhor.net, image + mark size, footer bar height,
             font size, column amount
         '''
-        to_image_size: dict = {
+        to_image_size = {
             range(1, 14): (
                 'Large',
                 (271, 100),
@@ -148,9 +148,10 @@ class WoT(commands.Cog):
             )
         }
 
-        columns = (max(4, min(8, total_marks // 10)),)
-        for _range, sizes in to_image_size.items():
-            if total_marks in _range:
+        # Minimum of 4 columns and maximum of 10
+        columns = (max(4, min(10, total_marks // 10)),)
+        for mark_range, sizes in to_image_size.items():
+            if total_marks in mark_range:
                 return sizes + columns
 
 
@@ -228,7 +229,8 @@ class WoT(commands.Cog):
 
     @alru_cache()
     async def _get_current_campaign(self) -> GlobalmapEvent:
-        '''Retrieves the current running campaigns data
+        '''Cached
+        Retrieves the current running campaigns data
 
         Raises:
             ApiError: Getting the data failed

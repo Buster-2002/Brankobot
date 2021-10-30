@@ -48,18 +48,19 @@ class MusicQueuePaginator(menus.ListPageSource):
         self.ctx = ctx
 
     async def format_page(self, menu, entry: dict) -> discord.Embed:
-        msg = dedent(f'''
-            **Song:** [{entry['title']}]({entry['webpage_url']})
-            **Channel** [{entry['uploader']}]({entry['uploader_url']})
-            **Requested by:** {entry['requester'].mention}
-            **Views:** {intcomma(entry['view_count'])}
-            **Uploaded:** {format_dt(entry['upload_date'], 'R')}
-            **Duration:** {precisedelta(entry['duration'])}
-        ''')
+        fields = [
+            ('Song', f"[{entry['title']}]({entry['webpage_url']})"),
+            ('Channel', f"[{entry['uploader']}]({entry['uploader_url']})"),
+            ('Requested by', entry['requester'].mention),
+            ('Views', intcomma(entry['view_count'])),
+            ('Likes/Dislikes', f"{intcomma(entry['likes'])}/{intcomma(entry['dislikes'])}"),
+            ('Uploaded', discord.utils.format_dt(entry['upload_date'], 'R'))
+        ]
         embed = (await self.ctx.send_response(
-            msg,
+            f"**Duration:** {precisedelta(entry['duration'])}",
             title=f'Queue position {menu.current_page + 1}',
             thumbnail=entry['thumbnail'],
+            fields=fields,
             send=False,
             show_invoke_speed=False
         )).set_footer(

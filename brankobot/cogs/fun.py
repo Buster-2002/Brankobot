@@ -6,7 +6,7 @@ The MIT License (MIT)
 Copyright (c) 2021-present Buster
 
 Permission is hereby granted, free of charge, to any person obtaining a
-copy of this software and associated documentation files (the "Software"),
+copy of this software and associated documentation files (the 'Software'),
 to deal in the Software without restriction, including without limitation
 the rights to use, copy, modify, merge, publish, distribute, sublicense,
 and/or sell copies of the Software, and to permit persons to whom the
@@ -15,7 +15,7 @@ Software is furnished to do so, subject to the following conditions:
 The above copyright notice and this permission notice shall be included in
 all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS
 OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
@@ -120,7 +120,7 @@ class Fun(commands.Cog):
             bool: True if there is no blacklisted_words, and the length is below 100
         '''
         # This is kinda useless but still funny if
-        # someone tries to say something with it and fails
+        # someone tries to say something with these and fails
         blacklisted_words  = {
             'nigger',
             'cunt',
@@ -157,7 +157,16 @@ class Fun(commands.Cog):
             return await response.read()
 
 
-    def _caption(self, im_bytes: bytes, text: str):
+    def _generate_caption(self, im_bytes: bytes, text: str) -> discord.File:
+        '''Adds a caption to an image
+
+        Args:
+            im_bytes (bytes): The image as bytes to add caption to
+            text (str): The caption text
+
+        Returns:
+            discord.File: The captioned image
+        '''
         im = Image.open(BytesIO(im_bytes))
         frames = []
         BEBASNEUE = str(Path('assets/fonts/BebasNeue.ttf'))
@@ -200,13 +209,13 @@ class Fun(commands.Cog):
 
     @channel_check()
     @role_check()
-    @commands.cooldown(1, 60, commands.BucketType.user)
+    @commands.cooldown(1, 15, commands.BucketType.user)
     @commands.command(aliases=['makememe', 'gifcaption', 'captiongif'])
     async def caption(self, ctx, link: str, *, text: str):
         '''Will caption your <link> with <text>'''
         async with ctx.typing():
             b = await self._get_bytes(link)
-            _file, ft = await self.bot.loop.run_in_executor(None, lambda: self._caption(b, text))
+            _file, ft = await self.bot.loop.run_in_executor(None, lambda: self._generate_caption(b, text))
             await ctx.send_response(image=f'attachment://caption.{ft}', files=_file)
 
 
@@ -228,9 +237,7 @@ class Fun(commands.Cog):
     @commands.cooldown(5, 60, commands.BucketType.guild)
     @commands.command()
     async def rand(self, ctx, num1: int, num2: int, type: str = None):
-        '''Chooses random number between <num1> and <num2>
-        Possible third argument: scale and percentage
-        '''
+        '''Chooses random number'''
         r_int = random.randrange(num1, (num2 + 1))
         if type == 'scale':
             rep = self._rand_responses_1
@@ -244,7 +251,7 @@ class Fun(commands.Cog):
     @commands.command()
     @commands.cooldown(5, 60, commands.BucketType.guild)
     async def love(self, ctx, *, thing: str):
-        '''Chooses random number between 0 and 100'''
+        '''Determines how much you love something'''
         r_int = random.randrange(101)
         if r_int < 33:
             emote = Emote.cry
@@ -258,7 +265,7 @@ class Fun(commands.Cog):
     @commands.command('8ball', aliases=['magic8ball'])
     @commands.cooldown(5, 60, commands.BucketType.guild)
     async def _8ball(self, ctx):
-        '''Picks random response from list'''
+        '''Ask magic 8ball a question'''
         await ctx.send(f'{ctx.author.mention}, {random.choice(self._8ball_responses)}')
 
 
@@ -266,19 +273,19 @@ class Fun(commands.Cog):
     @commands.cooldown(1, 3, commands.BucketType.user)
     @commands.command(aliases=['urbandict', 'define'])
     async def urban(self, ctx, *, query: commands.clean_content):
-        '''Will search your <query> on urban dictionary and send definition'''
+        '''Defines a word using the urban dictionary'''
         r = await self.bot.AIOHTTP_SESSION.get(f'http://api.urbandictionary.com/v0/define?term={query}')
         data = await r.json()
         nl = '\n'
         try:
             msg = dedent(f'''
-                **Word:** [{data["word"]}]({data.get("permalink")})
-                **Date:** {data.get("written_on", "1900-01-01")[0:10]}
-                **Upvotes:** {data.get("thumbs_up", "No Upvotes")}
-                **Downvotes:** {data.get("thumbs_down", "No Downvotes")}
-                **Definition:** {escape_markdown(data.get("definition").replace(nl, ""))}
+                **Word:** [{data['word']}]({data.get('permalink')})
+                **Date:** {data.get('written_on', '1900-01-01')[0:10]}
+                **Upvotes:** {data.get('thumbs_up', 'No Upvotes')}
+                **Downvotes:** {data.get('thumbs_down', 'No Downvotes')}
+                **Definition:** {escape_markdown(data.get('definition').replace(nl, ''))}
 
-                *{escape_markdown(data.get("example").replace(nl, ""))}*
+                *{escape_markdown(data.get('example').replace(nl, ''))}*
             '''.strip())
         except KeyError:
             msg = f'Word {query} not found'
@@ -289,15 +296,15 @@ class Fun(commands.Cog):
     @commands.cooldown(1, 3, commands.BucketType.user)
     @commands.command(aliases=['randommeme', 'meme'])
     async def reddit(self, ctx, subreddit: str = 'memes'):
-        '''Returns a random post from [subreddit=memes]'''
+        '''Returns a random post from a subreddit'''
         r = await self.bot.AIOHTTP_SESSION.get(f'https://meme-api.herokuapp.com/gimme/{subreddit}')
         data = await r.json()
         try:
             if data['nsfw'] is False:
                 fields = [
-                    ('Subreddit', f"[{data['subreddit']}](https://www.reddit.com/r/{data['subreddit']})"),
-                    ('Author', f"[{data['author']}](https://www.reddit.com/r/{data['author']})"),
-                    ('Upvotes', f"{data['ups']} 👍🏻")
+                    ('Subreddit', f'[{data["subreddit"]}](https://www.reddit.com/r/{data["subreddit"]})'),
+                    ('Author', f'[{data["author"]}](https://www.reddit.com/r/{data["author"]})'),
+                    ('Upvotes', f'{data["ups"]} 👍🏻')
                 ]
                 await ctx.send_response(
                     fields=fields,
@@ -339,7 +346,7 @@ class Fun(commands.Cog):
     async def fact(self, ctx):
         '''Will send a random useless fact'''
         r = await (await self.bot.AIOHTTP_SESSION.get('https://uselessfacts.jsph.pl/random.json?language=en')).json()
-        msg = r['text'].replace('`', "'")
+        msg = r['text'].replace('`', '\'')
         await ctx.send_response(msg, title='Useless Fact')
 
 
