@@ -329,6 +329,7 @@ class Events(commands.Cog):
                         await self.bot.CONN.commit()
 
                     else:
+                        # This will be caught by our on_error handler
                         raise commands.CommandOnCooldown(bucket, retry_after, commands.BucketType.guild)
 
             finally:
@@ -339,18 +340,15 @@ class Events(commands.Cog):
         elif content.startswith(('>', '.')) is False:
             d_content = self._last_messages[channel.id]['content']
             d_counter = self._last_messages[channel.id]['counter']
-            if not d_content:
-                d_content = content
-                d_counter = 1
+            # No message recorded in channel yet
+            if not d_content or content != d_content:
+                d_content, d_counter = content, 1
 
+            # Old content is same as content now
             elif content == d_content:
                 d_counter += 1
-                if d_counter >= 4:
+                if d_counter == 4:
                     await channel.send(content)
-                    d_content, d_counter = str(), int()
-
-            else:
-                d_content, d_counter = str(), int()
 
             self._last_messages[channel.id].update({
                 'content': d_content,
