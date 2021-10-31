@@ -387,7 +387,7 @@ class Music(commands.Cog):
         source = voice_client.source
         duration = source.duration
         passed = time.perf_counter() - player.started_playing_at
-        progress = round((passed / duration) * 10)
+        progress = round((passed / duration) * 10) # This way we get an int between 0 and 10 which we can directly use to create emotes
         leftover = 10 - progress
 
         # Create YT-like progress bar
