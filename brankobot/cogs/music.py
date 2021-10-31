@@ -385,13 +385,21 @@ class Music(commands.Cog):
 
         # Calculate progress into song
         source = voice_client.source
+        duration = source.duration
         passed = time.perf_counter() - player.started_playing_at
-        progress = passed / source.duration
-        leftover = 1.0 - progress
-        tf = lambda s: time.strftime('%M:%S', time.gmtime(s))
+        progress = round((passed / duration) * 10)
+        leftover = 10 - progress
 
         # Create YT-like progress bar
-        bar = str(Emote.start) + (round(progress * 10) * str(Emote.center_full)) + str(Emote.middle) + (round(leftover * 10) * str(Emote.center_empty)) + str(Emote.end)
+        bar = str(Emote.start) + (progress * str(Emote.center_full)) + str(Emote.middle) + (leftover * str(Emote.center_empty)) + str(Emote.end)
+
+        # Format time like in YouTube
+        tf = lambda s: time.strftime(
+            '%H:%M:%S' if s >= 60 * 60 else '%M:%S',
+            time.gmtime(s)
+        ).lstrip('0').replace(' 0', '') # %-H and %-M only works on linux for non-zero padded hours/minutes so we do this instead
+
+        # Send response
         fields = [
             ('Song', f"[{source.title}]({source.webpage_url})"),
             ('Channel', f"[{source.uploader}]({source.uploader_url})"),
@@ -401,7 +409,7 @@ class Music(commands.Cog):
             ('Uploaded', discord.utils.format_dt(source.upload_date, 'R'))
         ]
         player.now_playing = await ctx.send_response(
-            f"{bar} ({tf(passed)}/{tf(source.duration)})",
+            f"{bar} ({tf(passed)}/{tf(duration)})",
             title='Now Playing',
             thumbnail=source.thumbnail,
             show_invoke_speed=False,
