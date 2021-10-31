@@ -340,16 +340,20 @@ class Events(commands.Cog):
         elif content.startswith(('>', '.')) is False:
             d_content = self._last_messages[channel.id]['content']
             d_counter = self._last_messages[channel.id]['counter']
-            # No message recorded in channel yet
+
+            # Message content not the same as last recorded
+            # or no recorded content at all. We just set it
+            # to the current
             if not d_content or content != d_content:
                 d_content, d_counter = content, 1
 
             # Old content is same as content now
-            elif content == d_content:
+            else:
                 d_counter += 1
                 if d_counter == 4:
                     await channel.send(content)
 
+            # Update dict with new values
             self._last_messages[channel.id].update({
                 'content': d_content,
                 'counter': d_counter
