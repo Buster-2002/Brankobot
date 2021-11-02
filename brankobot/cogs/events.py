@@ -24,23 +24,25 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 '''
 
+import datetime
 import json
+import logging
 import random
 import time
 from collections import defaultdict
-from datetime import datetime
 from pathlib import Path
 from textwrap import dedent
 
 import aiohttp
 import aiosqlite
 import discord
-import logging
-from discord.ext import commands
+from discord import __version__ as dcversion
+from discord.ext import commands, tasks
 from discord.message import MessageReference
 from discord.utils import format_dt
 from humanize import naturaldelta
-from main import __version__
+from humanize.number import ordinal
+from main import __version__ as botversion
 
 from .utils.enums import (BigRLDChannelType, Emote, GuildType,
                           SmallRLDChannelType, try_enum)
@@ -130,6 +132,8 @@ class Events(commands.Cog):
         if self.bot.BEEN_READY is False:
             # Load variables that require async func
             self.bot.AIOHTTP_SESSION = aiohttp.ClientSession(loop=self.bot.loop)
+            logger = logging.getLogger('brankobot')
+            logger.info('Bot is ready')
 
             # Load tanks in memory
             print('-' * 75)
@@ -188,7 +192,7 @@ class Events(commands.Cog):
                 print('-' * 75)
                 print('[*] Creating DB connection...')
 
-                # Create custom commands table if it doesn\'t yet exist
+                # Create custom commands table if it doesn't yet exist
                 create_cc_table_query = dedent('''
                     CREATE TABLE IF NOT EXISTS custom_commands (
                         id                 INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
@@ -202,7 +206,7 @@ class Events(commands.Cog):
                 await cursor.execute(create_cc_table_query)
                 await conn.commit()
 
-                # Create reminder table if it doesn\'t yet exist
+                # Create reminder table if it doesn't yet exist
                 create_reminder_table_query = dedent('''
                     CREATE TABLE IF NOT EXISTS reminders (
                         id                   INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
@@ -215,6 +219,18 @@ class Events(commands.Cog):
                     );
                 '''.strip())
                 await cursor.execute(create_reminder_table_query)
+                await conn.commit()
+
+                # Create birthdays table it doesn't yet exist
+                create_birthday_table_query = dedent('''
+                    CREATE TABLE IF NOT EXISTS birthdays (
+                        id                 INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
+                        user_id            INTEGER NOT NULL,
+                        server_id          INTEGER NOT NULL,
+                        birthday_timestamp REAL NOT NULL
+                    );
+                '''.strip())
+                await cursor.execute(create_birthday_table_query)
                 await conn.commit()
 
                 print('-' * 75)
@@ -231,15 +247,57 @@ class Events(commands.Cog):
                         print(f'[*] Loaded reminder belonging to {reminder.creator.id}')
                         self.bot.loop.create_task(self.bot.start_timer(reminder))
 
+                # Starting birthday task
+                self.check_birthdays.start()
+
                 self.bot.BEEN_READY = True
                 print('-' * 75)
                 print(f'[*] Bot {self.bot.user.name} is ready')
-                print(f'[*] Running on version {__version__}')
-                print(f'[*] Running with discord.py version {discord.__version__}')
+                print(f'[*] Running on version {botversion}')
+                print(f'[*] Running with discord.py version {dcversion}')
                 print('-' * 75)
 
             finally:
                 await cursor.close()
+
+
+    # Check for birthdays every day at 07:00 UTC which is 08:00 CET
+    @tasks.loop(time=datetime.time(hour=7))
+    async def check_birthdays(self):
+        logger = logging.getLogger('brankobot')
+        logger.info('Checking for birthdays...')
+        cursor = await self.bot.CONN.cursor()
+        try:
+            select_birthdays_query = dedent('''
+                SELECT *
+                FROM birthdays;
+            '''.strip())
+
+            rows = await cursor.execute(select_birthdays_query)
+            rows = await rows.fetchall()
+
+            for row in rows:
+                birth_date = datetime.datetime.fromtimestamp(row[3]).date()
+                today = datetime.date.today()
+
+                # Only proceed if today is actually the day...
+                if (today.month, today.day) == (birth_date.month, birth_date.day):
+                    server_id = row[2]
+                    channel_id = None
+
+                    if server_id is GuildType.big_rld.value:
+                        channel_id = BigRLDChannelType.classified.value
+                    elif server_id is GuildType.small_rld.value:
+                        channel_id = SmallRLDChannelType.classified.value
+
+                    if channel_id:                    
+                        channel = self.bot.get_channel(channel_id)
+                        user = self.bot.get_user(row[1])
+                        await channel.send(f'{Emote.tada} it\'s {user.mention}\'s **{ordinal(today.year - birth_date.year)}** birthday {Emote.cake}!')
+                        await channel.send(str(Emote.feels_birthday_man))
+
+        finally:
+            await cursor.close()
 
 
     @commands.Cog.listener()
@@ -434,7 +492,7 @@ class Events(commands.Cog):
             exc = 'You can only use `help` in #bot'
 
         elif isinstance(error, TimeTravelNotPossible):
-            exc = f'You can\'t travel back in time {naturaldelta(datetime.now() - error.time)} 🙄'
+            exc = f'You can\'t travel back in time {naturaldelta(datetime.datetime.now() - error.date)} 🙄'
 
         elif isinstance(error, ReminderDoesntExist):
             exc = f'The reminder {error.id} doesn\'t exist'
@@ -522,6 +580,9 @@ class Events(commands.Cog):
 
         elif isinstance(error, commands.NotOwner):
             exc = 'You can\'t use this command'
+        
+        elif isinstance(error, AlreadyRegistered):
+            exc = f'You are already registered with your birthday on {format_dt(error.date, "d")}'
 
         elif isinstance(error, commands.CommandOnCooldown):
             exc = f'The command is on cooldown ({error.type.name} scope). try again in {error.retry_after:.0f}s :joy:'
