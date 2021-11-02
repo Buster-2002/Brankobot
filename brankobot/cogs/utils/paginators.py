@@ -40,7 +40,7 @@ from .wotreplay_folder import (BattleEconomy, BattlePerformance, BattlePlayer,
 
 
 class MusicQueuePaginator(menus.ListPageSource):
-    def __init__(self, data, ctx):
+    def __init__(self, data, ctx: commands.Context):
         super().__init__(
             data,
             per_page=1
@@ -71,7 +71,7 @@ class MusicQueuePaginator(menus.ListPageSource):
 
 
 class CustomCommandsPaginator(menus.ListPageSource):
-    def __init__(self, data, ctx, user: discord.User = None):
+    def __init__(self, data, ctx: commands.Context, user: discord.User = None):
         super().__init__(
             data,
             per_page=10
