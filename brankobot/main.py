@@ -192,14 +192,15 @@ class Bot(commands.Bot):
         super().__init__(
             command_prefix=get_prefix,
             case_insensitive=True,
+            enable_debug_events=True, # on_socket_raw_send/receive
             description='A bot for the RLD WoT clan Discord server',
             intents=discord.Intents(
-                guilds=True, # get_channel
-                members=True, # on_member_join, get_user, get_member, roles, nick
-                presences=True, # Only used for offline command (Getting jocs status)
-                guild_messages=True, # on_message
+                guilds=True,          # get_channel
+                members=True,         # on_member_join, get_user, get_member, roles, nick
+                presences=True,       # Only used for offline command (Getting jocs status)
+                guild_messages=True,  # on_message
                 guild_reactions=True, # For menus
-                voice_states=True, # music
+                voice_states=True,    # music
             ),
             allowed_mentions=discord.AllowedMentions(
                 everyone=False,
@@ -212,15 +213,28 @@ class Bot(commands.Bot):
             ),
             owner_ids={
                 159746057524346880, # marnik
-                764584777642672160 # me
+                764584777642672160  # buster
             }
         )
         self.BEEN_READY = False
         self.DISCORD_API_TOKEN = os.getenv('DISCORD_TOKEN')
         self.WOT_API_TOKEN = os.getenv('WOT_TOKEN')
+        self.START_TIME = datetime.now()
         self.REMINDER_TASKS = {}
         self.MUSIC_PLAYERS = {}
         self._BotBase__cogs = commands.core._CaseInsensitiveDict()
+        self.SOCKET_STATS = {
+            'RAW_SEND': 0,
+            'RAW_RECEIVED': 0
+        }
+
+
+    async def on_socket_raw_send(self, _: bytes):
+        self.SOCKET_STATS['RAW_SEND'] += 1
+
+
+    async def on_socket_raw_receive(self, _: bytes):
+        self.SOCKET_STATS['RAW_RECEIVED'] += 1
 
 
     async def on_error(self, event: str, *args, **kwargs) -> Optional[discord.Message]:
@@ -329,7 +343,6 @@ class Bot(commands.Bot):
                 select_command_query,
                 (command_name,)
             )
-
             row = await rows.fetchone()
             if row:
                 return CustomCommand(*row)
