@@ -92,8 +92,14 @@ class YTDLSource(discord.PCMVolumeTransformer):
         if 'entries' in data:
             data = data['entries'][0]
 
+        msg = dedent(f'''
+            **Added:** [{data["title"]}]({data["webpage_url"]}) to music queue
+
+            *Use {ctx.prefix}queue for more info*
+        ''')
+
         await ctx.send_response(
-            f'**Added:** [{data["title"]}]({data["webpage_url"]}) to music queue',
+            msg,
             delete_after=15,
             thumbnail=data['thumbnails'][0]['url'],
             show_invoke_speed=False,
@@ -185,6 +191,8 @@ class MusicPlayer:
             msg = dedent(f'''
                 **Song:** [{source.title}]({source.webpage_url})
                 **Requested by:** {source.requester.mention}
+
+                *Use {self.ctx.prefix}current for more info*
             ''')
             self.now_playing = await self.ctx.send_response(
                 msg,
@@ -421,7 +429,7 @@ class Music(commands.Cog):
     @channel_check()
     @role_check()
     @commands.command(aliases=['changevolume', 'vol'])
-    async def volume(self, ctx, volume: float):
+    async def volume(self, ctx: commands.Context, volume: float):
         '''Changes music volume (must be between 0 and 100)'''
         voice_client = ctx.voice_client
         if voice_client is None or voice_client.is_connected() is False:
