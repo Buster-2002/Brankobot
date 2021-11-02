@@ -11,6 +11,12 @@ You are allowed to use this code, however it is purely designed for the two afor
 * Python sqlite3 version 3.35.5 +
 * `requirements.txt` installed
 
+### Features
+* Decent error handling
+* Response on mention
+* Response on server join
+* fully fledged birthdays, music, reminders and custom commands
+
 ### Commands
 
 #### World of Tanks
