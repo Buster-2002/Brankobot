@@ -34,7 +34,48 @@ from .enums import Region
 from .models import CustomCommand, Reminder
 
 
-# Music errors
+
+__all__ = (
+    # Music errors
+    'VoiceChannelError',
+    'NotPlaying',
+    'EmptyQueue',
+    'InvalidVolume',
+
+    # Reminder errors
+    'NoTimeFound',
+    'NoReminders',
+    'ReminderDoesntExist',
+    'TimeTravelNotPossible',
+    'NotReminderOwner',
+
+    # Custom Command errors
+    'CommandExists',
+    'CommandDoesntExist',
+    'NotCommandOwner',
+    'NoCustomCommands',
+    'InvalidCommandName',
+    'InvalidCommandContent',
+
+    # WoT errors
+    'InvalidNickname',
+    'InvalidClan',
+    'InvalidFlags',
+    'ReplayError',
+    'NoMoe',
+    'PlayerNotFound',
+    'ClanNotFound',
+    'TankNotFound',
+    'NotARegion',
+
+    # Other errors
+    'ChannelNotAllowed',
+    'MissingRoles',
+    'ApiError',
+    'AlreadyRegistered'
+)
+
+
 class MusicError(commands.CommandError):
     pass
 
@@ -69,8 +110,8 @@ class ReminderDoesntExist(ReminderError):
         self.id = id
 
 class TimeTravelNotPossible(ReminderError):
-    def __init__(self, time: datetime):
-        self.time = time
+    def __init__(self, date: datetime):
+        self.date = date
 
 class NotReminderOwner(ReminderError):
     def __init__(self, reminder: Reminder):
@@ -160,3 +201,7 @@ class ChannelNotAllowed(commands.CommandError):
 class MissingRoles(commands.CommandError):
     def __init__(self, allowed_ids: Set[int]):
         self.allowed_ids = allowed_ids
+
+class AlreadyRegistered(commands.CommandError):
+    def __init__(self, date: datetime):
+        self.date = date
