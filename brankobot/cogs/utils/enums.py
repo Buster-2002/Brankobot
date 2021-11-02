@@ -175,15 +175,19 @@ class FrontType(_StrIsValue, Enum):
 
 class Emote(_StrIsValue, Enum):
     # GENERAL
-    flushed_pumpkin = '<:flushedpumpkin:742317554009374842>'
-    cry             = ':cry:'
-    heart           = ':heart:'
-    oncoming_bus    = ':oncoming_bus:'
-    eyes            = ':eyes:'
-    bus             = ':bus:'
-    shush           = ':shushing_face:'
-    rolling_eyes    = ':rolling_eyes:'
-    mad             = ':triumph:'
+    flushed_pumpkin    = '<:flushed_pumpkin:905125381475037195>'
+    feels_birthday_man = '<:feels_birthday_man:905125599079702578>'
+    cry                = ':cry:'
+    heart              = ':heart:'
+    oncoming_bus       = ':oncoming_bus:'
+    eyes               = ':eyes:'
+    bus                = ':bus:'
+    shush              = ':shushing_face:'
+    rolling_eyes       = ':rolling_eyes:'
+    mad                = ':triumph:'
+    monocle            = ':face_with_monocle:'
+    tada               = ':tada:'
+    cake               = ':birthday:'
 
     # PLAYBAR
     start        = '<:start:904076967492595792>'
