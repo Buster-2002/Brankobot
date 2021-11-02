@@ -88,10 +88,10 @@ class CommandNameCheck(commands.Converter):
         return argument
 
 
-class DateConverter(commands.Converter):
+class ReminderConverter(commands.Converter):
     '''Extracts a time from argument
 
-    >>> await DateConverter().convert(ctx, "In 3 hours, do the dishes")
+    >>> await ReminderConverter().convert(ctx, "In 3 hours, do the dishes")
     ('do the dishes', datetime.datetime(2021, 10, 3, 15, 22, 19, 139779))
     '''
     async def convert(self, _, argument: str) -> Tuple[str, datetime]:
