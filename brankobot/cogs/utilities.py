@@ -36,12 +36,13 @@ from discord.ext.menus.views import ViewMenuPages
 from discord.utils import escape_markdown, format_dt
 
 from .utils.checks import channel_check, role_check
-from .utils.converters import CommandNameCheck, DateConverter
+from .utils.converters import CommandNameCheck, ReminderConverter
 from .utils.enums import BigRLDRoleType, SmallRLDRoleType
 from .utils.errors import (CommandDoesntExist, CommandExists,
                            InvalidCommandContent, NoCustomCommands,
                            NoReminders, NotCommandOwner, NotReminderOwner,
                            ReminderDoesntExist)
+from .utils.helpers import confirm
 from .utils.models import CustomCommand, Reminder
 from .utils.paginators import CustomCommandsPaginator, ReminderPaginator
 
@@ -79,7 +80,7 @@ class Utilities(commands.Cog):
     @channel_check()
     @commands.cooldown(5, 60, commands.BucketType.guild)
     @commands.command(aliases=['info'])
-    async def userinfo(self, ctx, user: Union[discord.Member, discord.User] = None):
+    async def userinfo(self, ctx: commands.Context, user: Union[discord.Member, discord.User] = None):
         '''Shows some user information about a member or user'''
         user = user or ctx.author
         status_emotes = {
@@ -120,7 +121,7 @@ class Utilities(commands.Cog):
         aliases=['remind', 'reminders'],
         usage='<reminder (should contain a loose interpretation of time, e.g "in 4 hours watch quickybaby" or "at 22:30, play stronghold with RLD")>'
     )
-    async def _reminder(self, ctx, *, reminder: DateConverter):
+    async def _reminder(self, ctx: commands.Context, *, reminder: ReminderConverter):
         '''Creates a reminder from message'''
         extracted, ends_at = reminder
         cursor = await self.bot.CONN.cursor()
@@ -165,7 +166,7 @@ class Utilities(commands.Cog):
             await cursor.close()
 
     @_reminder.command('list')
-    async def _reminder_list(self, ctx):
+    async def _reminder_list(self, ctx: commands.Context):
         '''Lists your reminders'''
         cursor = await self.bot.CONN.cursor()
         try:
@@ -195,7 +196,7 @@ class Utilities(commands.Cog):
             await cursor.close()
 
     @_reminder.command('remove', aliases=['delete', 'del'])
-    async def _reminder_remove(self, ctx, id: int):
+    async def _reminder_remove(self, ctx: commands.Context, id: int):
         '''Removes your reminder by its ID (see reminder list)'''
         cursor = await self.bot.CONN.cursor()
         try:
@@ -203,10 +204,19 @@ class Utilities(commands.Cog):
             if reminder_task is None:
                 raise ReminderDoesntExist(id)
 
-            reminder = reminder_task['reminder']
-            if not self._is_moderator(ctx.author.roles):
+            msg = 'are you sure you want to remove this reminder?'
+            reminder: Reminder = reminder_task['reminder']
+            # Moderators can delete any reminder
+            if self._is_moderator(ctx.author.roles):
+                msg = msg.rstrip('?')
+                msg += f' belonging to {self.bot.get_user(reminder.creator_id)}?'
+            else:
                 if reminder.creator.id != ctx.author.id:
                     raise NotReminderOwner(reminder)
+
+            confirmed = await confirm(ctx, msg)
+            if not confirmed:
+                return
 
             with suppress(Exception):
                 task = reminder_task['task']
@@ -222,7 +232,7 @@ class Utilities(commands.Cog):
             await cursor.close()
 
     @_reminder.command('clear')
-    async def _reminder_clear(self, ctx):
+    async def _reminder_clear(self, ctx: commands.Context):
         '''Removes all your reminders'''
         cursor = await self.bot.CONN.cursor()
         try:
@@ -261,7 +271,7 @@ class Utilities(commands.Cog):
 
     @role_check(BigRLDRoleType.member, BigRLDRoleType.onlyfans, SmallRLDRoleType.member)
     @cc.command('add', aliases=['make', 'create'])
-    async def cc_add(self, ctx, command_name: CommandNameCheck, *, content: str):
+    async def cc_add(self, ctx: commands.Context, command_name: CommandNameCheck, *, content: str):
         '''Creates a custom command'''
         if len(content) > 500:
             raise InvalidCommandContent()
@@ -278,7 +288,9 @@ class Utilities(commands.Cog):
                     creation_timestamp,
                     name,
                     content
-                ) VALUES (?, ?, ?, ?);
+                ) VALUES (
+                    ?, ?, ?, ?
+                );
             '''.strip())
 
             await cursor.execute(
@@ -301,24 +313,33 @@ class Utilities(commands.Cog):
 
     @role_check(BigRLDRoleType.member, BigRLDRoleType.onlyfans, SmallRLDRoleType.member)
     @cc.command('remove', aliases=['delete', 'del'])
-    async def cc_remove(self, ctx, *, command_name: CommandNameCheck):
+    async def cc_remove(self, ctx: commands.Context, *, command_name: CommandNameCheck):
         '''Removes a custom command belonging to you'''
         cursor = await self.bot.CONN.cursor()
         try:
-            command = await self.bot.get_custom_command(command_name)
+            command: CustomCommand = await self.bot.get_custom_command(command_name)
             if command is None:
                 raise CommandDoesntExist(command_name)
 
-            # Exclude moderators from this check
+            msg = 'are you sure you want to remove this command?'
+            # Moderators can delete any custom command
             if not self._is_moderator(ctx.author.roles):
+                msg = msg.rstrip('?')
+                msg += f' belonging to {self.bot.get_user(command.creator_id)}?'
+            else:
                 if command.creator.id != ctx.author.id:
                     raise NotCommandOwner(command)
+
+            confirmed = await confirm(ctx, msg)
+            if not confirmed:
+                return
 
             delete_command_query = dedent('''
                 DELETE
                 FROM custom_commands
                 WHERE id = ?;
             '''.strip())
+
             await cursor.execute(
                 delete_command_query,
                 (command.id,)
@@ -334,7 +355,7 @@ class Utilities(commands.Cog):
 
     @role_check(BigRLDRoleType.member, BigRLDRoleType.onlyfans, SmallRLDRoleType.member)
     @cc.command('rename', aliases=['update'])
-    async def cc_rename(self, ctx, command_name: CommandNameCheck, new_command_name: CommandNameCheck):
+    async def cc_rename(self, ctx: commands.Context, command_name: CommandNameCheck, new_command_name: CommandNameCheck):
         '''Renames a custom command belonging to you'''
         cursor = await self.bot.CONN.cursor()
         try:
@@ -351,6 +372,7 @@ class Utilities(commands.Cog):
                 SET name = ?
                 WHERE name = ?;
             '''.strip())
+
             await cursor.execute(
                 update_command_query,
                 (
@@ -368,7 +390,7 @@ class Utilities(commands.Cog):
             await cursor.close()
 
     @cc.command('info')
-    async def cc_info(self, ctx, *, command_name: CommandNameCheck):
+    async def cc_info(self, ctx: commands.Context, *, command_name: CommandNameCheck):
         '''Shows info about a custom command'''
         command = await self.bot.get_custom_command(command_name)
         if command is None:
@@ -388,7 +410,7 @@ class Utilities(commands.Cog):
         )
 
     @cc.command('search', aliases=['find'])
-    async def cc_search(self, ctx, cutoff: Optional[float] = 0.5, *, query: commands.clean_content):
+    async def cc_search(self, ctx: commands.Context, cutoff: Optional[float] = 0.5, *, query: commands.clean_content):
         '''Searches for a custom command by query'''
         cursor = await self.bot.CONN.cursor()
         try:
@@ -399,6 +421,7 @@ class Utilities(commands.Cog):
                 SELECT *
                 FROM custom_commands
             '''.strip())
+
             rows = await cursor.execute(select_commands_query)
             rows = await rows.fetchall()
             custom_commands = [CustomCommand(*r) for r in rows]
@@ -425,7 +448,7 @@ class Utilities(commands.Cog):
             await cursor.close()
 
     @cc.command('list', aliases=['all'])
-    async def cc_list(self, ctx, user: discord.User = None):
+    async def cc_list(self, ctx: commands.Context, user: discord.User = None):
         '''Shows custom commands, optionally filtering by a user'''
         cursor = await self.bot.CONN.cursor()
         try:
@@ -451,7 +474,7 @@ class Utilities(commands.Cog):
                 await pages.start(ctx)
             else:
                 raise NoCustomCommands(user)
-                
+
         finally:
             await cursor.close()
 
