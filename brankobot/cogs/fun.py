@@ -23,21 +23,25 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 '''
-
 import random
+from datetime import date, datetime
 from io import BytesIO
 from pathlib import Path
 from textwrap import dedent, wrap
 
+import dateparser
 import discord
 from discord.ext import commands
-from discord.utils import escape_markdown, remove_markdown
+from discord.utils import escape_markdown, format_dt, remove_markdown
+from humanize import ordinal
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageSequence
 
 from .utils.checks import channel_check, role_check
 from .utils.enums import (BigRLDChannelType, BigRLDRoleType, Emote, GuildType,
                           SmallRLDChannelType, SmallRLDRoleType)
+from .utils.errors import AlreadyRegistered
 from .utils.gif import save_transparent_gif
+from .utils.helpers import confirm
 
 
 # -- Cog -- #
@@ -211,7 +215,7 @@ class Fun(commands.Cog):
     @role_check()
     @commands.cooldown(1, 15, commands.BucketType.user)
     @commands.command(aliases=['makememe', 'gifcaption', 'captiongif'])
-    async def caption(self, ctx, link: str, *, text: str):
+    async def caption(self, ctx: commands.Context, link: str, *, text: str):
         '''Will caption your <link> with <text>'''
         async with ctx.typing():
             b = await self._get_bytes(link)
@@ -222,7 +226,7 @@ class Fun(commands.Cog):
     @role_check()
     @commands.cooldown(1, 60, commands.BucketType.guild)
     @commands.command()
-    async def offline(self, ctx):
+    async def offline(self, ctx: commands.Context):
         '''Sends an MP3 if Joc666 is offline'''
         guild = self.bot.get_guild(GuildType.big_rld)
         if guild:
@@ -236,7 +240,7 @@ class Fun(commands.Cog):
 
     @commands.cooldown(5, 60, commands.BucketType.guild)
     @commands.command()
-    async def rand(self, ctx, num1: int, num2: int, type: str = None):
+    async def rand(self, ctx: commands.Context, num1: int, num2: int, type: str = None):
         '''Chooses random number'''
         r_int = random.randrange(num1, (num2 + 1))
         if type == 'scale':
@@ -250,7 +254,7 @@ class Fun(commands.Cog):
 
     @commands.command()
     @commands.cooldown(5, 60, commands.BucketType.guild)
-    async def love(self, ctx, *, thing: str):
+    async def love(self, ctx: commands.Context, *, thing: str):
         '''Determines how much you love something'''
         r_int = random.randrange(101)
         if r_int < 33:
@@ -264,7 +268,7 @@ class Fun(commands.Cog):
 
     @commands.command('8ball', aliases=['magic8ball'])
     @commands.cooldown(5, 60, commands.BucketType.guild)
-    async def _8ball(self, ctx):
+    async def _8ball(self, ctx: commands.Context):
         '''Ask magic 8ball a question'''
         await ctx.send(f'{ctx.author.mention}, {random.choice(self._8ball_responses)}')
 
@@ -272,7 +276,7 @@ class Fun(commands.Cog):
     @channel_check(BigRLDChannelType.general)
     @commands.cooldown(1, 3, commands.BucketType.user)
     @commands.command(aliases=['urbandict', 'define'])
-    async def urban(self, ctx, *, query: commands.clean_content):
+    async def urban(self, ctx: commands.Context, *, query: commands.clean_content):
         '''Defines a word using the urban dictionary'''
         r = await self.bot.AIOHTTP_SESSION.get(f'http://api.urbandictionary.com/v0/define?term={query}')
         data = await r.json()
@@ -295,7 +299,7 @@ class Fun(commands.Cog):
     @channel_check(BigRLDChannelType.memes, SmallRLDChannelType.memes)
     @commands.cooldown(1, 3, commands.BucketType.user)
     @commands.command(aliases=['randommeme', 'meme'])
-    async def reddit(self, ctx, subreddit: str = 'memes'):
+    async def reddit(self, ctx: commands.Context, subreddit: str = 'memes'):
         '''Returns a random post from a subreddit'''
         r = await self.bot.AIOHTTP_SESSION.get(f'https://meme-api.herokuapp.com/gimme/{subreddit}')
         data = await r.json()
@@ -321,7 +325,7 @@ class Fun(commands.Cog):
     @role_check(BigRLDRoleType.member, BigRLDRoleType.onlyfans, SmallRLDRoleType.member)
     @commands.cooldown(1, 300, commands.BucketType.guild)
     @commands.command(aliases=['echo'])
-    async def say(self, ctx, *, message: str):
+    async def say(self, ctx: commands.Context, *, message: str):
         '''Brankobot will repeat your message input'''
         if not self._input_check(message):
             await ctx.send(random.choice(self._echo_responses))
@@ -334,7 +338,7 @@ class Fun(commands.Cog):
     @role_check()
     @commands.command(aliases=['chief', 'chieftain'], hidden=True)
     @commands.cooldown(1, 300, commands.BucketType.guild)
-    async def outside(self, ctx):
+    async def outside(self, ctx: commands.Context):
         '''30% chance of responding with h7's outside mp3'''
         if random.ranrange(0, 101) > 70:
             await ctx.send(file=discord.File(str(Path('assets/audio/h7_outside.mp3'))))
@@ -343,7 +347,7 @@ class Fun(commands.Cog):
     @role_check()
     @commands.command(aliases=['uselessfact'])
     @commands.cooldown(1, 60, commands.BucketType.user)
-    async def fact(self, ctx):
+    async def fact(self, ctx: commands.Context):
         '''Will send a random useless fact'''
         r = await (await self.bot.AIOHTTP_SESSION.get('https://uselessfacts.jsph.pl/random.json?language=en')).json()
         msg = r['text'].replace('`', '\'')
@@ -353,7 +357,7 @@ class Fun(commands.Cog):
     @role_check()
     @commands.command(aliases=['createpoll'])
     @commands.cooldown(1, 300, commands.BucketType.user)
-    async def poll(self, ctx, title: str, *answers: str):
+    async def poll(self, ctx: commands.Context, title: str, *answers: str):
         '''Will create a strawpoll with possible [answers...] and [options...]'''
         payload = {
             'poll': {
@@ -365,32 +369,104 @@ class Fun(commands.Cog):
         await ctx.send(f'https://strawpoll.com/{r["content_id"]}')
 
 
+    @commands.command(usage='<birth_date (dd/mm/yyyy, dd-mm-yyyy or e.g 3 dec, 2002)>')
+    async def birthday(self, ctx: commands.Context, birth_date: str):
+        '''Registers your birthday for brankobot to sell on the dark web'''
+        birth_date = dateparser.parse(birth_date, ['%d/%m/%Y', '%d-%m-%Y', '%-d %b, %Y'])
+        birthday_timestamp = int(birth_date.timestamp())
+        today = date.today()
+
+        cursor = await self.bot.CONN.cursor()
+        try:
+            # Check if user isn't already in database
+            select_birthday_query = dedent('''
+                SELECT *
+                FROM birthdays
+                WHERE user_id = ?;
+            '''.strip())
+
+            rows = await cursor.execute(
+                select_birthday_query,
+                (ctx.author.id,)
+            )
+            row = await rows.fetchone()
+
+            if row:
+                raise AlreadyRegistered(datetime.fromtimestamp(row[3]))
+
+            else:
+                # Since a user can only add his birthday once, we ask to confirm
+                confirmed = await confirm(
+                    ctx,
+                    f'you can only add your birthday once, is {format_dt(birth_date, "D")} right?'
+                )
+
+                if not confirmed:
+                    return
+
+                # Add birthday to DB
+                insert_birthday_query = dedent('''
+                    INSERT INTO birthdays (
+                        user_id,
+                        server_id,
+                        birthday_timestamp
+                    ) VALUES (
+                        ?, ?, ?
+                    )
+                '''.strip())
+
+                await cursor.execute(
+                    insert_birthday_query,
+                    (
+                        ctx.author.id,
+                        ctx.guild.id,
+                        birthday_timestamp
+                    )
+                )
+                await self.bot.CONN.commit()
+
+                # If birthday has already been this year,
+                # we take the next year for our message
+                year = today.year
+                if not (today.month <= birth_date.month and today.day < birth_date.day):
+                    year += 1
+
+                next_birthday = datetime(year, birth_date.month, birth_date.day)
+                await ctx.send_response(
+                    f'ok {Emote.monocle}, i will maybe wish you a happy **{ordinal(year - birth_date.year)}** birthday {format_dt(next_birthday, "R")}',
+                    title='Birthday Added'
+                )
+
+        finally:
+            await cursor.close()
+
+
     @commands.group(invoke_without_command=True)
     @commands.cooldown(1, 30, commands.BucketType.user)
     async def joke(self, _):
         '''Base command for sending jokes'''
 
     @joke.command('dad')
-    async def joke_dad(self, ctx):
+    async def joke_dad(self, ctx: commands.Context):
         '''Will send a random dad joke from [this website](https://icanhazdadjoke.com)'''
         r = await (await self.bot.AIOHTTP_SESSION.get('https://icanhazdadjoke.com', headers={'Accept': 'application/json'})).json()
         msg = r['joke']
         await ctx.send_response(msg)
 
     @joke.command('dark')
-    async def joke_dark(self, ctx):
+    async def joke_dark(self, ctx: commands.Context):
         '''Will send a random dark joke from [this website](https://sv443.net/jokeapi)'''
         r = await (await self.bot.AIOHTTP_SESSION.get('https://sv443.net/jokeapi/v2/joke/Dark')).json()
         await ctx.send_response(self._get_joke(r))
 
     @joke.command('pun')
-    async def joke_pun(self, ctx):
+    async def joke_pun(self, ctx: commands.Context):
         '''Will send a random pun joke from [this website](https://sv443.net/jokeapi)'''
         r = await (await self.bot.AIOHTTP_SESSION.get('https://sv443.net/jokeapi/v2/joke/Pun')).json()
         await ctx.send_response(self._get_joke(r))
 
     @joke.command('misc')
-    async def joke_misc(self, ctx):
+    async def joke_misc(self, ctx: commands.Context):
         '''Will send a random miscellaneous joke from [this website](https://sv443.net/jokeapi)'''
         r = await (await self.bot.AIOHTTP_SESSION.get('https://sv443.net/jokeapi/v2/joke/Miscellaneous')).json()
         await ctx.send_response(self._get_joke(r))
