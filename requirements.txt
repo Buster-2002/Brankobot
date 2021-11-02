@@ -10,6 +10,7 @@ beautifulsoup4
 Pillow
 python-dotenv
 PyNaCl
+psutil
 youtube_dl
 async_timeout
 git+https://github.com/Rapptz/discord.py
