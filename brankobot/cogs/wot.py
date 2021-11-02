@@ -534,7 +534,7 @@ class WoT(commands.Cog):
     @channel_check(BigRLDChannelType.battle_results, SmallRLDChannelType.battle_results)
     @commands.cooldown(1, 15, commands.BucketType.user)
     @commands.command(aliases=['replay'])
-    async def replayinfo(self, ctx, replay_message: discord.Message):
+    async def replayinfo(self, ctx: commands.Context, replay_message: discord.Message):
         '''Extracts info from a .wotreplay file'''
         async with ctx.typing():
             try:
@@ -595,7 +595,7 @@ class WoT(commands.Cog):
         aliases=['markimage', 'markcollage'],
         usage='<player_search> [region: eu] [separate_nations: no (no for sorting by mark > tier, yes for sorting by nation > mark)] [nations: all (filter to nations)] [types: all (filter to types, can be lightTank, mediumTank, heavyTank, AT-SPG or SPG)] [tiers: all (filter to tiers)]'
     )
-    async def showmarks(self, ctx, player_search: str, *, flags: MarkCollageFlags):
+    async def showmarks(self, ctx: commands.Context, player_search: str, *, flags: MarkCollageFlags):
         '''Will create a collage of all marks achieved by player'''
         player_region = flags.region
         separate_nations = flags.separate_nations
@@ -654,7 +654,7 @@ class WoT(commands.Cog):
         aliases=['servicerecord', 'showtankstats'],
         usage=f'<player_search> [region: eu] [nations: all (filter to nations)] [types: all (filter to types, can be lightTank, mediumTank, heavyTank, AT-SPG or SPG)] [tiers: all (filter to tiers)] [roles: all (filter to tank roles)] [includepremiums: yes] [includenormal: yes] [includecollectors: yes] [sortby: total_battles (can be {", ".join([k for k in TankStats.__dataclass_fields__.keys() if not k.startswith("_")])})]'
     )
-    async def showstats(self, ctx, player_search: str, *, flags: TankStatFlags):
+    async def showstats(self, ctx: commands.Context, player_search: str, *, flags: TankStatFlags):
         '''Shows tank stats for each tank played by a player'''
         player_region = flags.region
         nations = flags.nations
@@ -724,7 +724,7 @@ class WoT(commands.Cog):
         aliases=['moe', 'reqs', 'marks'],
         usage='<tank_search> [region: eu] [moedays: 10 (days to graph moe history for)]'
     )
-    async def requirements(self, ctx, tank_search: str, *, flags: RequirementsFlags):
+    async def requirements(self, ctx: commands.Context, tank_search: str, *, flags: RequirementsFlags):
         '''Retrieves information about moe/mastery/expected values and more'''
         moe_region = flags.region
         moe_days = flags.moe_days
@@ -840,7 +840,7 @@ class WoT(commands.Cog):
     @channel_check()
     @commands.cooldown(1, 10, commands.BucketType.user)
     @commands.command(aliases=['clansearch', 'c'], usage='<clan_search> [clan_region=eu]')
-    async def clan(self, ctx, clan_search: str, clan_region: RegionConverter = Region.eu):
+    async def clan(self, ctx: commands.Context, clan_search: str, clan_region: RegionConverter = Region.eu):
         '''Uses WoTs API and WoT-life to return clan statistics'''
         async with ctx.typing():
             clan = await self._search_clan(clan_search, clan_region)
@@ -977,7 +977,7 @@ class WoT(commands.Cog):
     @channel_check(BigRLDChannelType.recruiters, SmallRLDChannelType.recruiters)
     @commands.cooldown(1, 10, commands.BucketType.user)
     @commands.command(aliases=['playersearch'], usage='<player_search> [player_region=eu]')
-    async def player(self, ctx, player_search: str, player_region: RegionConverter = Region.eu):
+    async def player(self, ctx: commands.Context, player_search: str, player_region: RegionConverter = Region.eu):
         '''Uses WoTs API and WoT-life to return player statistics'''
         async with ctx.typing():
             player = await self._search_player(player_search, player_region)
@@ -1180,7 +1180,7 @@ class WoT(commands.Cog):
     # @role_check()
     # @commands.cooldown(1, 30, commands.BucketType.guild)
     # @commands.command(aliases=['status', 'wot_status'])
-    # async def wotstatus(self, ctx):
+    # async def wotstatus(self, ctx: commands.Context):
     #     '''Pings WoT servers and shows reported server problems if any'''
     #     async with ctx.typing():
     #         async with self.bot.AIOHTTP_SESSION.get('https://downdetector.com/status/world-of-tanks/') as r:
@@ -1223,7 +1223,7 @@ class WoT(commands.Cog):
         '''Group command for clan wars related commands'''
 
     @cw.command('clanlog', aliases=['history', 'log', 'activity', 'logs'])
-    async def cw_clanlog(self, ctx, clan_search: str = '-RLD-', page: int = 1):
+    async def cw_clanlog(self, ctx: commands.Context, clan_search: str = '-RLD-', page: int = 1):
         '''Shows a clans activity log'''
         async with ctx.typing():
             clan = await self._search_clan(clan_search, Region.eu)
@@ -1268,7 +1268,7 @@ class WoT(commands.Cog):
             await pages.start(ctx)
 
     @cw.command('battles')
-    async def cw_battles(self, ctx, clan_search: str = '-RLD-'):
+    async def cw_battles(self, ctx: commands.Context, clan_search: str = '-RLD-'):
         '''Shows upcoming battles information for specified clan'''
         async with ctx.typing():
             clan = await self._search_clan(clan_search, Region.eu)
@@ -1344,7 +1344,7 @@ class WoT(commands.Cog):
             await pages.start(ctx)
 
     @cw.command('rewards', aliases=['accstatus', 'status'])
-    async def cw_rewards(self, ctx, player_search: str):
+    async def cw_rewards(self, ctx: commands.Context, player_search: str):
         '''Shows some data about your account, including current rewards in CW'''
         async with ctx.typing():
             player = await self._search_player(player_search, Region.eu)
@@ -1449,7 +1449,7 @@ class WoT(commands.Cog):
             )
 
     @cw.command('provinces', aliases=['prov'])
-    async def cw_provinces(self, ctx, clan_search: str = '-RLD-'):
+    async def cw_provinces(self, ctx: commands.Context, clan_search: str = '-RLD-'):
         '''Shows all provinces for specified clan'''
         async with ctx.typing():
             clan = await self._search_clan(clan_search, Region.eu)
@@ -1511,7 +1511,7 @@ class WoT(commands.Cog):
         aliases=['clan'],
         usage='[page=1 (page 1 shows clans 1 through 25, page 2 25 through 50, etc)]'
     )
-    async def cw_leaderboard_clans(self, ctx, page: int = 1):
+    async def cw_leaderboard_clans(self, ctx: commands.Context, page: int = 1):
         async with ctx.typing():
             page -= 1
             event = await self._get_current_campaign()
@@ -1562,7 +1562,7 @@ class WoT(commands.Cog):
         aliases=['player', 'people'],
         usage='[page=1 (page 1 shows players 1 through 25, page 2 25 through 50, etc)]'
     )
-    async def cw_leaderboard_players(self, ctx, page: int = 1):
+    async def cw_leaderboard_players(self, ctx: commands.Context, page: int = 1):
         async with ctx.typing():
             page -= 1
             event = await self._get_current_campaign()
