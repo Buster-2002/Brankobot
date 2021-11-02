@@ -26,16 +26,68 @@ DEALINGS IN THE SOFTWARE.
 
 import re
 
+import discord
+from discord.ext import commands
+
+
 def separate_capitals(word: str) -> str:
     '''Creates a proper title from camelCase words
+
+    Example
+    -------
 
     >>> separate_capitals("camelCaseWord")
     'Camel Case Word'
 
-    Args:
-        word (str): The word to split up into a proper title
+    Parameters
+    ----------
+    word : str 
+        The word to split up into a proper title
 
-    Returns:
-        str: A title
+    Returns
+    -------
+    str
+        A string separated on capitals
     '''
     return (' '.join(re.split(r'(?=[A-Z])', word))).strip().title()
+
+
+class ConfirmUI(discord.ui.View):
+    def __init__(self, timeout: int):
+        super().__init__(timeout=timeout)
+        self.value: bool = None
+
+
+    @discord.ui.button(label='Confirm', style=discord.ButtonStyle.green)
+    async def confirm(self, button: discord.ui.Button, interaction: discord.Interaction):
+        self.value = True
+        self.stop()
+
+
+    @discord.ui.button(label='Cancel', style=discord.ButtonStyle.red)
+    async def cancel(self, button: discord.ui.Button, interaction: discord.Interaction):
+        await interaction.response.send_message('no? alright, cancelled operation', ephemeral=True)
+        self.value = False
+        self.stop()
+
+
+async def confirm(ctx: commands.Context, prompt: str, timeout: int = 30) -> bool:
+    '''Uses a confirmation UI with Confirm and Cancel button
+
+    Parameters
+    ----------
+    ctx : commands.Context
+        The context under which to use this UI
+    prompt : str
+        The message to prompt the UI with
+
+    Returns
+    -------
+    bool
+        True if confirmed, False if cancelled or timed out
+    '''
+    view = ConfirmUI(timeout)
+    msg = await ctx.send(prompt, view=view)
+    await view.wait()
+    await msg.delete()
+    return bool(view.value)
