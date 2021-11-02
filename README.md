@@ -42,6 +42,7 @@ You are allowed to use this code, however it is purely designed for the two afor
 
 #### Fun
 * `caption`
+* `birthday`
 * `offline` (inside joke)
 * `rand`
 * `love`
@@ -64,6 +65,7 @@ You are allowed to use this code, however it is purely designed for the two afor
 * `restart`
 * `botlog`
 * `reload`
+* `processinfo`
 
 #### Utilities
 * `userinfo`
