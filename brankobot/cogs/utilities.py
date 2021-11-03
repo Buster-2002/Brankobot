@@ -24,9 +24,10 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 '''
 
+import os
 from contextlib import suppress
-from datetime import datetime
 from difflib import get_close_matches
+from tempfile import TemporaryDirectory
 from textwrap import dedent
 from typing import List, Optional, Union
 
@@ -34,10 +35,11 @@ import discord
 from discord.ext import commands
 from discord.ext.menus.views import ViewMenuPages
 from discord.utils import escape_markdown, format_dt
+from youtube_dl.YoutubeDL import YoutubeDL, DownloadError
 
 from .utils.checks import channel_check, role_check
 from .utils.converters import CommandNameCheck, ReminderConverter
-from .utils.enums import BigRLDRoleType, SmallRLDRoleType
+from .utils.enums import BigRLDRoleType, Emote, SmallRLDRoleType
 from .utils.errors import (CommandDoesntExist, CommandExists,
                            InvalidCommandContent, NoCustomCommands,
                            NoReminders, NotCommandOwner, NotReminderOwner,
@@ -75,6 +77,39 @@ class Utilities(commands.Cog):
         }
         allowed_ids = {mr.value for mr in moderator_roles}
         return any([r.id in allowed_ids for r in roles])
+
+
+    @commands.cooldown(2, 60, commands.BucketType.user)
+    @commands.command(aliases=['download', 'downloadmedia', 'uploadmedia'], usage='<link (works with [these](https://ytdl-org.github.io/youtube-dl/supportedsites.html) platform links)>')
+    async def upload(self, ctx: commands.Context, link: str):
+        '''Upload media like mp4/mp3 from link'''
+        temp_dir = TemporaryDirectory()
+        msg = await ctx.message.reply(f'{Emote.loading} Downloading...')
+        ytdl_options = {
+            'quiet': True,
+            'no_warnings': True,
+            'noplaylist': True,
+            'restrictfilenames': True,
+            'format': f'best[filesize<{ctx.guild.filesize_limit}]',
+            'outtmpl': f'{temp_dir.name}//%(id)s.%(ext)s'
+        }
+        try:
+            meta = await self.bot.loop.run_in_executor(
+                None,
+                lambda: YoutubeDL(ytdl_options).extract_info(
+                    link,
+                    download=True
+                )
+            )
+        except DownloadError:
+            await msg.edit('File is too big.') 
+        else:
+            await msg.edit(f'{Emote.loading} Uploading...')
+            await ctx.send(file=discord.File(
+                f'{temp_dir.name}/{meta["id"]}.{meta["ext"]}',
+                f'{meta["title"]}.{meta["ext"]}'
+            ))
+            await msg.delete()
 
 
     @channel_check()
@@ -130,8 +165,8 @@ class Utilities(commands.Cog):
                 ctx.message.author.id,
                 ctx.channel.id,
                 ctx.message.jump_url,
-                datetime.timestamp(ctx.message.created_at),
-                datetime.timestamp(ends_at),
+                ctx.message.created_at.timestamp(),
+                ends_at.timestamp(),
                 extracted.replace('"', '""')
             )
             insert_reminder_query = dedent('''
@@ -224,7 +259,7 @@ class Utilities(commands.Cog):
 
             await self.bot.delete_reminder(reminder)
             await ctx.send_response(
-                f'Removed reminder `{id}`.',
+                f'removed reminder with ID `{id}`',
                 title='Reminder removed'
             )
 
@@ -264,10 +299,11 @@ class Utilities(commands.Cog):
         finally:
             await cursor.close()
 
+
     @commands.cooldown(5, 15, commands.BucketType.user)
     @commands.group(invoke_without_command=True, aliases=['customcommand', 'tag'])
     async def cc(self, _):
-        '''Base command for the custom commands'''
+        '''Base command for creating/renaming/deleting/showing custom commands'''
 
     @role_check(BigRLDRoleType.member, BigRLDRoleType.onlyfans, SmallRLDRoleType.member)
     @cc.command('add', aliases=['make', 'create'])
@@ -297,14 +333,14 @@ class Utilities(commands.Cog):
                 insert_command_query,
                 (
                     ctx.message.author.id,
-                    datetime.timestamp(ctx.message.created_at),
+                    ctx.message.created_at.timestamp(),
                     command_name,
                     content
                 )
             )
             await self.bot.CONN.commit()
             await ctx.send_response(
-                f'Created command `{command_name}`.',
+                f'okay, you can now use >{command_name}',
                 title='Command Created'
             )
 
@@ -346,7 +382,7 @@ class Utilities(commands.Cog):
             )
             await self.bot.CONN.commit()
             await ctx.send_response(
-                f'Removed command `{command_name}`.',
+                f'removed command with name `{command_name}`',
                 title='Command Removed'
             )
 
@@ -382,7 +418,7 @@ class Utilities(commands.Cog):
             )
             await self.bot.CONN.commit()
             await ctx.send_response(
-                f'Renamed command `{command_name}` to `{new_command_name}`.',
+                f'np, renamed `{command_name}` to `{new_command_name}`',
                 title='Command Renamed'
             )
 
