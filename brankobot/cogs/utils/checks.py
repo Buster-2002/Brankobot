@@ -37,7 +37,7 @@ def is_connected():
     async def predicate(ctx) -> bool:
         destination = getattr(ctx.author.voice, 'channel', None)
         if destination is None:
-            raise VoiceChannelError(f'You aren\'t connected to a voice channel.')
+            raise VoiceChannelError(f'You aren\'t connected to a voice channel')
 
         return True
 

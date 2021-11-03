@@ -1220,7 +1220,7 @@ class WoT(commands.Cog):
     @commands.group(invoke_without_command=True, aliases=['clanwars', 'gm', 'globalmap'])
     @commands.cooldown(5, 60, commands.BucketType.guild)
     async def cw(self, _):
-        '''Group command for clan wars related commands'''
+        '''Group command for cw clanlogs/battles/rewards/provinces/leaderboards'''
 
     @cw.command('clanlog', aliases=['history', 'log', 'activity', 'logs'])
     async def cw_clanlog(self, ctx: commands.Context, clan_search: str = '-RLD-', page: int = 1):

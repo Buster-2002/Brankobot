@@ -100,8 +100,8 @@ class NewHelpCommand(commands.HelpCommand):
         '''Invokes with <prefix>help <group>'''
         ctx = self.context
         title = f'Brankobot | Help > {group.cog_name} > {group.qualified_name}'
-        aliases = ', '.join(group.aliases) or 'This group doesn\'t have any aliases.'
-        usage = group.usage or group.signature.replace('_', '') or 'This group doesn\'t take any arguments.'
+        aliases = ', '.join(group.aliases) or 'This group doesn\'t have any aliases'
+        usage = group.usage or group.signature.replace('_', '') or 'This group doesn\'t take any arguments'
         formatted = '\n'.join(sorted([(
             f"**{self._prefix}{c.qualified_name}** \u279F {c.help}")
             for c in group.commands
@@ -141,8 +141,8 @@ class NewHelpCommand(commands.HelpCommand):
         channels = get_limitations('allowed_channel_types')
 
         title = f'Brankobot | Help > {command.cog_name} > {f"{command.parent} > " if command.parent else ""}{command.name}'
-        aliases = ', '.join(command.aliases) or 'This command doesn\'t have any aliases.'
-        usage = command.signature or 'This command doesn\'t take any arguments.'
+        aliases = ', '.join(command.aliases) or 'This command doesn\'t have any aliases'
+        usage = command.signature or 'This command doesn\'t take any arguments'
         msg = dedent(f'''
             *Arguments in between <> are required, arguments in between [] have a default value*
 

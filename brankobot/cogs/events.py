@@ -482,7 +482,7 @@ class Events(commands.Cog):
             exc = 'The music queue is empty'
 
         elif isinstance(error, InvalidVolume):
-            exc = f'{error.volume}% is not valid, pick a number between 0 and 100.'
+            exc = f'{error.volume}% is not valid, pick a number between 0 and 100'
 
         # Reminder errors
         elif isinstance(error, NoTimeFound):
@@ -525,7 +525,7 @@ class Events(commands.Cog):
             exc = 'You can\'t name your command this. Make sure its at least 1 character and at most 50 characters long, and consists of just latin characters / spaces / numbers'
 
         elif isinstance(error, InvalidCommandContent):
-            exc = 'You can\'t have your command send this. Make sure the content is at most 500 chars long.'
+            exc = 'You can\'t have your command send this. Make sure the content is at most 500 chars long'
 
         # Other errors
         elif isinstance(error, aiosqlite.Error):

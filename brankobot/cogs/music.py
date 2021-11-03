@@ -257,7 +257,7 @@ class Music(commands.Cog):
 
                 # Check if we're already connected to the channel
                 if voice_channel == destination:
-                    raise VoiceChannelError('I am already connected to this channel.', destination)
+                    raise VoiceChannelError('I am already connected to this channel', destination)
 
                 # Check if we're already connected to a different channel
                 if voice_client.is_connected():
