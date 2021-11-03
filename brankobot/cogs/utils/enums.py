@@ -177,6 +177,7 @@ class Emote(_StrIsValue, Enum):
     # GENERAL
     flushed_pumpkin    = '<:flushed_pumpkin:905125381475037195>'
     feels_birthday_man = '<:feels_birthday_man:905125599079702578>'
+    loading            = '<a:loading:905516653931016252>'
     cry                = ':cry:'
     heart              = ':heart:'
     oncoming_bus       = ':oncoming_bus:'
