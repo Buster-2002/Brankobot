@@ -75,6 +75,7 @@ You are allowed to use this code, however it is purely designed for the two afor
 
 #### Utilities
 * `userinfo`
+* `download`
 * `reminder`
   - `list`
   - `remove`
