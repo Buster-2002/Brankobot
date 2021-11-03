@@ -369,11 +369,13 @@ class Fun(commands.Cog):
         await ctx.send(f'https://strawpoll.com/{r["content_id"]}')
 
 
-    @commands.command(usage='<birth_date (dd/mm/yyyy, dd-mm-yyyy or e.g 3 dec, 2002)>')
+    @role_check(BigRLDRoleType.member, SmallRLDRoleType.member)
+    @commands.cooldown(1, 300, commands.BucketType.user)
+    @commands.command(usage='<birth_date (dd/mm/yyyy, dd-mm-yyyy or e.g 20 apr, 1889)>')
     async def birthday(self, ctx: commands.Context, birth_date: str):
         '''Registers your birthday for brankobot to sell on the dark web'''
         birth_date = dateparser.parse(birth_date, ['%d/%m/%Y', '%d-%m-%Y', '%-d %b, %Y'])
-        birthday_timestamp = int(birth_date.timestamp())
+        birthday_timestamp = birth_date.timestamp()
         today = date.today()
 
         cursor = await self.bot.CONN.cursor()
