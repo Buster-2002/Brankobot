@@ -224,10 +224,10 @@ class Events(commands.Cog):
                 # Create birthdays table it doesn't yet exist
                 create_birthday_table_query = dedent('''
                     CREATE TABLE IF NOT EXISTS birthdays (
-                        id                 INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
-                        user_id            INTEGER NOT NULL,
-                        server_id          INTEGER NOT NULL,
-                        birthday_timestamp REAL NOT NULL
+                        id            INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
+                        user_id       INTEGER NOT NULL,
+                        server_id     INTEGER NOT NULL,
+                        birthday_date TEXT NOT NULL
                     );
                 '''.strip())
                 await cursor.execute(create_birthday_table_query)
@@ -240,8 +240,10 @@ class Events(commands.Cog):
                     SELECT *
                     FROM reminders
                 '''.strip())
-                rows = await cursor.execute(select_reminder_query)
-                if rows := await rows.fetchall():
+                result = await cursor.execute(select_reminder_query)
+                rows = await result.fetchall()
+
+                if rows:
                     reminders = [Reminder(*r) for r in rows]
                     for reminder in reminders:
                         print(f'[*] Loaded reminder belonging to {reminder.creator.id}')
@@ -273,11 +275,12 @@ class Events(commands.Cog):
                 FROM birthdays;
             '''.strip())
 
-            rows = await cursor.execute(select_birthdays_query)
-            rows = await rows.fetchall()
+            result = await cursor.execute(select_birthdays_query)
+            rows = await result.fetchall()
 
             for row in rows:
-                birth_date = datetime.datetime.fromtimestamp(row[3]).date()
+                year, month, day = map(int, row[3].split('-'))
+                birth_date = datetime.date(year=year, month=month, day=day)
                 today = datetime.date.today()
 
                 # Only proceed if today is actually the day...
@@ -405,13 +408,12 @@ class Events(commands.Cog):
             if not d_content or content != d_content:
                 d_content, d_counter = content, 1
 
-            # Old content is same as content now
             else:
                 d_counter += 1
                 if d_counter == 4:
                     await channel.send(content)
 
-            # Update dict with new values
+            # Update dict with (new) values
             self._last_messages[channel.id].update({
                 'content': d_content,
                 'counter': d_counter
@@ -461,7 +463,6 @@ class Events(commands.Cog):
         '''
         Called for every error raised inside of a command
         - Handles error by sending message with information'''
-        logger = logging.getLogger('brankobot')
         if ctx.command:
             ctx.command.reset_cooldown(ctx)
 
@@ -531,8 +532,7 @@ class Events(commands.Cog):
         elif isinstance(error, aiosqlite.Error):
             await self.bot.CONN.rollback()
             await ctx.reply(f'Database had an error (mention buster): {error}', mention_author=False)
-            logger.exception('Database error')
-            return
+            raise error
 
         elif isinstance(error, ReplayError):
             exc = f'Something went wrong: {error.message}'
@@ -582,7 +582,7 @@ class Events(commands.Cog):
             exc = 'You can\'t use this command'
         
         elif isinstance(error, AlreadyRegistered):
-            exc = f'You are already registered with your birthday on {format_dt(error.date, "d")}'
+            exc = f'You are already registered with your birthday on {format_dt(error.date, "d")} in {error.guild}'
 
         elif isinstance(error, commands.CommandOnCooldown):
             exc = f'The command is on cooldown ({error.type.name} scope). try again in {error.retry_after:.0f}s :joy:'
@@ -592,8 +592,7 @@ class Events(commands.Cog):
 
         else:
             await ctx.reply(f'Something unexpected happened (mention buster if issue persists): {str(error)}', mention_author=False)
-            logger.exception('Unexpected command error')
-            return
+            raise error
 
         await ctx.reply(exc, delete_after=60, mention_author=False)
 
