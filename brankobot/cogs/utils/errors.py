@@ -33,8 +33,6 @@ from discord.ext import commands
 from .enums import Region
 from .models import CustomCommand, Reminder
 
-
-
 __all__ = (
     # Music errors
     'VoiceChannelError',
@@ -203,5 +201,6 @@ class MissingRoles(commands.CommandError):
         self.allowed_ids = allowed_ids
 
 class AlreadyRegistered(commands.CommandError):
-    def __init__(self, date: datetime):
+    def __init__(self, date: datetime, guild: discord.Guild):
         self.date = date
+        self.guild = guild
