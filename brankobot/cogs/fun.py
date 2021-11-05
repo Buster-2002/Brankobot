@@ -39,9 +39,8 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageSequence
 from .utils.checks import channel_check, role_check
 from .utils.enums import (BigRLDChannelType, BigRLDRoleType, Emote, GuildType,
                           SmallRLDChannelType, SmallRLDRoleType)
-from .utils.errors import AlreadyRegistered
 from .utils.gif import save_transparent_gif
-from .utils.helpers import confirm
+from .utils.helpers import Loading, average, confirm
 
 
 # -- Cog -- #
@@ -198,12 +197,18 @@ class Fun(commands.Cog):
 
         for frame in ImageSequence.Iterator(im):
             frame = frame.convert('RGBA')
-            frame = ImageOps.expand(frame, (0, bar_height, 0, 0), 'white')
+            frame = ImageOps.expand(frame, (0, bar_height, 0, 0), 'white').convert('RGBA')
             draw = ImageDraw.Draw(frame)
             for i, line in enumerate(lines):
                 w, h = draw.multiline_textsize(line, font=font)
-                draw.text(((W - w) / 2, i * h), line, 'black', font)
-            frames.append(frame)
+                draw.text(
+                    ((W - w) / 2, i * h),
+                    line,
+                    'black',
+                    font
+                )
+
+            frames.append(frame.convert('RGBA'))
 
         fp = BytesIO()
         save_transparent_gif(frames, im.info.get('duration', 64), fp)
@@ -217,9 +222,16 @@ class Fun(commands.Cog):
     @commands.command(aliases=['makememe', 'gifcaption', 'captiongif'])
     async def caption(self, ctx: commands.Context, link: str, *, text: str):
         '''Will caption your <link> with <text>'''
-        async with ctx.typing():
+        async with Loading(ctx, initial_message='Downloading') as loader:
             b = await self._get_bytes(link)
-            _file, ft = await self.bot.loop.run_in_executor(None, lambda: self._generate_caption(b, text))
+            await loader.update('Generating')
+            _file, ft = await self.bot.loop.run_in_executor(
+                None,
+                lambda: self._generate_caption(
+                    b, text
+                )
+            )
+            await loader.update('Uploading')
             await ctx.send_response(image=f'attachment://caption.{ft}', files=_file)
 
 
@@ -370,12 +382,15 @@ class Fun(commands.Cog):
 
 
     @role_check(BigRLDRoleType.member, SmallRLDRoleType.member)
-    @commands.cooldown(1, 300, commands.BucketType.user)
-    @commands.command(usage='<birth_date (dd/mm/yyyy, dd-mm-yyyy or e.g 20 apr, 1889)>')
+    # @commands.cooldown(1, 300, commands.BucketType.user)
+    @commands.group(
+        invoke_without_command=True,
+        aliases=['bday', 'anniversary'],
+        usage='<birth_date (dd/mm/yyyy, dd-mm-yyyy or e.g 20 apr, 1889)>'
+    )
     async def birthday(self, ctx: commands.Context, birth_date: str):
-        '''Registers your birthday for brankobot to sell on the dark web'''
+        '''Registers your birthday for brankobot to sell on the dark web (and to congratulate)'''
         birth_date = dateparser.parse(birth_date, ['%d/%m/%Y', '%d-%m-%Y', '%-d %b, %Y'])
-        birthday_timestamp = birth_date.timestamp()
         today = date.today()
 
         cursor = await self.bot.CONN.cursor()
@@ -387,57 +402,95 @@ class Fun(commands.Cog):
                 WHERE user_id = ?;
             '''.strip())
 
-            rows = await cursor.execute(
+            result = await cursor.execute(
                 select_birthday_query,
                 (ctx.author.id,)
             )
-            row = await rows.fetchone()
+            row = await result.fetchone()
 
-            if row:
-                raise AlreadyRegistered(datetime.fromtimestamp(row[3]))
+            # if row:
+            #     year, month, day = map(int, row[3].split('-'))
+            #     raise AlreadyRegistered(
+            #         date(year=year, month=month, day=day),
+            #         self.bot.get_guild(row[2])
+            #     )
 
-            else:
-                # Since a user can only add his birthday once, we ask to confirm
-                confirmed = await confirm(
-                    ctx,
-                    f'you can only add your birthday once, is {format_dt(birth_date, "D")} right?'
+            # else:
+            # Since a user can only add his birthday once, we ask to confirm
+            confirmed = await confirm(
+                ctx,
+                f'you can only add your birthday once, is {format_dt(birth_date, "D")} right?'
+            )
+
+            if not confirmed:
+                return
+
+            # Add birthday to DB
+            insert_birthday_query = dedent('''
+                INSERT INTO birthdays (
+                    user_id,
+                    server_id,
+                    birthday_date
+                ) VALUES (
+                    ?, ?, ?
                 )
+            '''.strip())
 
-                if not confirmed:
-                    return
-
-                # Add birthday to DB
-                insert_birthday_query = dedent('''
-                    INSERT INTO birthdays (
-                        user_id,
-                        server_id,
-                        birthday_timestamp
-                    ) VALUES (
-                        ?, ?, ?
-                    )
-                '''.strip())
-
-                await cursor.execute(
-                    insert_birthday_query,
-                    (
-                        ctx.author.id,
-                        ctx.guild.id,
-                        birthday_timestamp
-                    )
+            await cursor.execute(
+                insert_birthday_query,
+                (
+                    ctx.author.id,
+                    ctx.guild.id,
+                    birth_date.strftime('%Y-%m-%d')
                 )
-                await self.bot.CONN.commit()
+            )
+            await self.bot.CONN.commit()
 
-                # If birthday has already been this year,
-                # we take the next year for our message
-                year = today.year
-                if not (today.month <= birth_date.month and today.day < birth_date.day):
-                    year += 1
+            # If birthday has already been this year,
+            # we take the next year for our message
+            year = today.year
+            if today.month >= birth_date.month and today.day > birth_date.day:
+                year += 1
 
-                next_birthday = datetime(year, birth_date.month, birth_date.day)
-                await ctx.send_response(
-                    f'ok {Emote.monocle}, i will maybe wish you a happy **{ordinal(year - birth_date.year)}** birthday {format_dt(next_birthday, "R")}',
-                    title='Birthday Added'
-                )
+            next_birthday = datetime(year, birth_date.month, birth_date.day)
+            await ctx.send_response(
+                f'ok {Emote.monocle}, i will maybe wish you a happy **{ordinal(year - birth_date.year)}** birthday {format_dt(next_birthday, "R")}',
+                title='Birthday Added',
+                show_invoke_speed=False
+            )
+
+        finally:
+            await cursor.close()
+
+    @birthday.command('average')
+    async def birthday_average(self, ctx: commands.Context):
+        cursor = await self.bot.CONN.cursor()
+        try:
+            select_birthdays_query = dedent('''
+                SELECT *
+                FROM birthdays
+                WHERE server_id = ?;
+            '''.strip())
+            result = await cursor.execute(
+                select_birthdays_query,
+                (ctx.guild.id,)
+            )
+            rows = await result.fetchall()
+            today = date.today()
+            average_age = average([
+                today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
+                for birth_date in [
+                    date(year=year, month=month, day=day)
+                    for year, month, day in [
+                        map(int, row[3].split('-'))
+                        for row in rows
+                    ]
+                ]
+            ])
+            await ctx.send_response(
+                f"The average age in **{ctx.guild.name}** is {average_age:.2f} years",
+                title='Average Age'
+            )
 
         finally:
             await cursor.close()
