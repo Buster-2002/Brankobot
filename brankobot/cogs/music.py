@@ -38,8 +38,8 @@ from discord.ext.menus.views import ViewMenuPages
 from humanize import intcomma
 from youtube_dl import YoutubeDL
 
-from .utils.enums import Emote
 from .utils.checks import channel_check, is_connected, role_check
+from .utils.enums import Emote
 from .utils.errors import (EmptyQueue, InvalidVolume, NotPlaying,
                            VoiceChannelError)
 from .utils.paginators import MusicQueuePaginator

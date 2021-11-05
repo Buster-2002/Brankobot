@@ -48,7 +48,7 @@ from matplotlib.ticker import MaxNLocator
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 from pythonping import ping
 
-from .utils.checks import channel_check, role_check
+from .utils.checks import channel_check
 from .utils.converters import RegionConverter
 from .utils.enums import (BigRLDChannelType, Emote, EventStatusType, FrontType,
                           LoseReasons, MarkType, Region, SmallRLDChannelType,
@@ -57,7 +57,7 @@ from .utils.errors import (ApiError, ClanNotFound, InvalidClan, InvalidFlags,
                            InvalidNickname, NoMoe, PlayerNotFound,
                            ReplayError)
 from .utils.flags import MarkCollageFlags, RequirementsFlags, TankStatFlags
-from .utils.helpers import separate_capitals
+from .utils.helpers import separate_capitals, Loading
 from .utils.models import (Achievement, Clan, GlobalmapEvent, GlobalMapFront,
                            Player, Tank, TankStats)
 from .utils.paginators import (ClanWarsPaginator, ReplayPaginator,
@@ -536,7 +536,7 @@ class WoT(commands.Cog):
     @commands.command(aliases=['replay'])
     async def replayinfo(self, ctx: commands.Context, replay_message: discord.Message):
         '''Extracts info from a .wotreplay file'''
-        async with ctx.typing():
+        async with Loading(ctx, initial_message='Downloading') as loader:
             try:
                 # Check if replay_message contains a .wotreplay file
                 if atts := replay_message.attachments:
@@ -551,6 +551,7 @@ class WoT(commands.Cog):
                 temp_file.write(await replay_file.read())
 
                 # Extract replay info
+                await loader.update('Extracting')
                 try:
                     replay = ReplayData(temp_file.name)
                     if not replay.replay.battle_data:
@@ -603,8 +604,9 @@ class WoT(commands.Cog):
         types = flags.types
         tiers = flags.tiers
 
-        async with ctx.typing():
+        async with Loading(ctx, initial_message='Searching') as loader:
             player = await self._search_player(player_search, player_region)
+            await loader.update('Filtering')
             filtered_data = list(filter(
                 lambda item: item.mark is not MarkType.no_mark,
                 await self._get_tank_stats(
@@ -628,6 +630,7 @@ class WoT(commands.Cog):
                 key=sort_key,
                 reverse=True
             )
+            await loader.update('Generating')
             _file = await self._generate_mark_image(
                 player,
                 separate_nations,
@@ -641,6 +644,7 @@ class WoT(commands.Cog):
                 Nations: {', '.join(nations) or 'all'}
                 Tiers: {', '.join(tiers) or 'all'}
             ''')
+            await loader.update('Uploading')
             await ctx.send_response(
                 msg,
                 image='attachment://marks.png',
@@ -729,7 +733,7 @@ class WoT(commands.Cog):
         moe_region = flags.region
         moe_days = flags.moe_days
 
-        async with ctx.typing():
+        async with Loading(ctx, initial_message='Gathering') as loader:
             tank = self.bot.search_tank(tank_search, 'short_name')
             embed = await ctx.send_response(
                 tank.tank_summary,
@@ -748,6 +752,7 @@ class WoT(commands.Cog):
                     moe_data = json_r['data']
                     curr_marks = moe_data[0]['marks'] # Latest mark data is first in list
 
+                await loader.update('Generating')
                 _file = self._generate_requirements_image(moe_data, moe_days, tank)
                 embed.set_image(url=f'attachment://moe_history.png')
                 embed.add_field(
@@ -759,6 +764,8 @@ class WoT(commands.Cog):
                         :100: {curr_marks['100']}
                     ''')
                 )
+
+            await loader.update('Gathering')
 
             # Mastery information
             async with self.bot.AIOHTTP_SESSION.get(f'https://mastery.poliroid.ru/api/{str(moe_region).lower()}/vehicle/{tank.id}') as r:
@@ -833,9 +840,11 @@ class WoT(commands.Cog):
                 value='\u200b'
             )
             if tank.tier >= 5:
+                await loader.update('Uploading')
                 await ctx.send(embed=embed, file=_file)
             else:
                 await ctx.send(embed=embed)
+
 
     @channel_check()
     @commands.cooldown(1, 10, commands.BucketType.user)

@@ -134,8 +134,8 @@ class Misc(commands.Cog):
                 FROM custom_commands
             '''.strip())
 
-            rows = await cursor.execute(select_commands_query)
-            cc_amount, = await rows.fetchone()
+            result = await cursor.execute(select_commands_query)
+            cc_amount, = await result.fetchone()
             start = time.perf_counter()
             resolve_message = await ctx.send('`Resolving...`')
             end = time.perf_counter()

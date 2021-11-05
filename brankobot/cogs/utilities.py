@@ -24,7 +24,6 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 '''
 
-import os
 from contextlib import suppress
 from difflib import get_close_matches
 from tempfile import TemporaryDirectory
@@ -35,7 +34,7 @@ import discord
 from discord.ext import commands
 from discord.ext.menus.views import ViewMenuPages
 from discord.utils import escape_markdown, format_dt
-from youtube_dl.YoutubeDL import YoutubeDL, DownloadError
+from youtube_dl.YoutubeDL import DownloadError, YoutubeDL
 
 from .utils.checks import channel_check, role_check
 from .utils.converters import CommandNameCheck, ReminderConverter
@@ -44,7 +43,7 @@ from .utils.errors import (CommandDoesntExist, CommandExists,
                            InvalidCommandContent, NoCustomCommands,
                            NoReminders, NotCommandOwner, NotReminderOwner,
                            ReminderDoesntExist)
-from .utils.helpers import confirm
+from .utils.helpers import confirm, Loading
 from .utils.models import CustomCommand, Reminder
 from .utils.paginators import CustomCommandsPaginator, ReminderPaginator
 
@@ -83,33 +82,33 @@ class Utilities(commands.Cog):
     @commands.command(aliases=['download', 'downloadmedia', 'uploadmedia'], usage='<link (works with [these](https://ytdl-org.github.io/youtube-dl/supportedsites.html) platform links)>')
     async def upload(self, ctx: commands.Context, link: str):
         '''Upload media like mp4/mp3 from link'''
-        temp_dir = TemporaryDirectory()
-        msg = await ctx.message.reply(f'{Emote.loading} Downloading...')
-        ytdl_options = {
-            'quiet': True,
-            'no_warnings': True,
-            'noplaylist': True,
-            'restrictfilenames': True,
-            'format': f'best[filesize<{ctx.guild.filesize_limit}]',
-            'outtmpl': f'{temp_dir.name}//%(id)s.%(ext)s'
-        }
-        try:
-            meta = await self.bot.loop.run_in_executor(
-                None,
-                lambda: YoutubeDL(ytdl_options).extract_info(
-                    link,
-                    download=True
+        async with Loading(ctx, initial_message='Downloading') as loader:
+            temp_dir = TemporaryDirectory()
+            ytdl_options = {
+                'quiet': True,
+                'no_warnings': True,
+                'noplaylist': True,
+                'restrictfilenames': True,
+                'format': f'best[filesize<{ctx.guild.filesize_limit}]',
+                'outtmpl': f'{temp_dir.name}//%(id)s.%(ext)s'
+            }
+            try:
+                meta = await self.bot.loop.run_in_executor(
+                    None,
+                    lambda: YoutubeDL(ytdl_options).extract_info(
+                        link,
+                        download=True
+                    )
                 )
-            )
-        except DownloadError:
-            await msg.edit('File is too big.') 
-        else:
-            await msg.edit(f'{Emote.loading} Uploading...')
-            await ctx.send(file=discord.File(
-                f'{temp_dir.name}/{meta["id"]}.{meta["ext"]}',
-                f'{meta["title"]}.{meta["ext"]}'
-            ))
-            await msg.delete()
+            except DownloadError as e:
+                await ctx.send(f'Couldn\'t download: {e.msg} (file too big?)', delete_after=60)
+            else:
+                await loader.update('Uploading')
+                ext = meta["ext"]
+                await ctx.send(file=discord.File(
+                    f'{temp_dir.name}/{meta["id"]}.{ext}',
+                    f'{meta["title"]}.{ext}'
+                ))
 
 
     @channel_check()
@@ -182,11 +181,11 @@ class Utilities(commands.Cog):
                 ) RETURNING id;
             '''.strip())
 
-            rows = await cursor.execute(
+            result = await cursor.execute(
                 insert_reminder_query,
                 args
             )
-            id = await rows.fetchone()
+            id = await result.fetchone()
             args = id + args
             reminder = Reminder(*args)
             msg = f'okay, {format_dt(reminder.ends_at, "R")}, I will remind you'
@@ -211,11 +210,13 @@ class Utilities(commands.Cog):
                 WHERE creator_id = ?;
             '''.strip())
 
-            rows = await cursor.execute(
+            result = await cursor.execute(
                 select_reminders_query,
                 (ctx.author.id,)
             )
-            if rows := await rows.fetchall():
+            rows = await result.fetchall()
+
+            if rows:
                 reminders = [Reminder(*r) for r in rows]
                 pages = ViewMenuPages(
                     source=ReminderPaginator(
@@ -278,11 +279,13 @@ class Utilities(commands.Cog):
                 RETURNING id;
             '''.strip())
 
-            rows = await cursor.execute(
+            result = await cursor.execute(
                 delete_reminders_query,
                 (ctx.author.id,)
             )
-            if rows := await rows.fetchall():
+            rows = await result.fetchall()
+
+            if rows:
                 for reminder_id in rows:
                     with suppress(Exception):
                         reminder_task = self.bot.REMINDER_TASKS[reminder_id]['task']
@@ -458,8 +461,8 @@ class Utilities(commands.Cog):
                 FROM custom_commands
             '''.strip())
 
-            rows = await cursor.execute(select_commands_query)
-            rows = await rows.fetchall()
+            result = await cursor.execute(select_commands_query)
+            rows = await result.fetchall()
             custom_commands = [CustomCommand(*r) for r in rows]
             close_matches = get_close_matches(
                 query,
@@ -497,8 +500,10 @@ class Utilities(commands.Cog):
             else:
                 select_commands_query += ';'
 
-            rows = await cursor.execute(select_commands_query)
-            if rows := await rows.fetchall():
+            result = await cursor.execute(select_commands_query)
+            rows = await result.fetchall()
+
+            if rows:
                 custom_commands = [CustomCommand(*r) for r in rows]
                 pages = ViewMenuPages(
                     source=CustomCommandsPaginator(

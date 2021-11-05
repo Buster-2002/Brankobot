@@ -339,11 +339,11 @@ class Bot(commands.Bot):
                 FROM custom_commands
                 WHERE name = ?;
             '''.strip())
-            rows = await cursor.execute(
+            result = await cursor.execute(
                 select_command_query,
                 (command_name,)
             )
-            row = await rows.fetchone()
+            row = await result.fetchone()
             if row:
                 return CustomCommand(*row)
 
