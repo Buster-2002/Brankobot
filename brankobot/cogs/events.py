@@ -47,7 +47,7 @@ from main import __version__ as botversion
 from .utils.enums import (BigRLDChannelType, Emote, GuildType,
                           SmallRLDChannelType, try_enum)
 from .utils.errors import *
-from .utils.models import Achievement, Birthday, Reminder, Tank
+from .utils.models import Achievement, Birthday, Reminder, Tank, CustomCommand
 
 
 # -- Cog -- #
@@ -337,6 +337,8 @@ class Events(commands.Cog):
                 )
 
                 await self.bot.delete_reminder(reminder)
+                logger = logging.getLogger('brankobot')
+                logger.info(f'"{self.bot.get_user(reminder.creator_id)}"s reminder was due in #{channel}')
 
         finally:
             await cursor.close()
@@ -352,6 +354,7 @@ class Events(commands.Cog):
         '''
         channel = message.channel
         content = message.content
+        author = message.author
 
         # Ignore ourselves in messages
         if message.author == self.bot.user or self.bot.BEEN_READY is False:
@@ -359,7 +362,7 @@ class Events(commands.Cog):
 
         # React to being mentioned
         if self.bot.user in message.mentions:
-            response = (random.choices(*zip(*self._mention_responses.items()))[0]).format(message.author.mention)
+            response = (random.choices(*zip(*self._mention_responses.items()))[0]).format(author.mention)
             await channel.send(response)
 
         # See if it's a custom command by checking the database
@@ -367,7 +370,7 @@ class Events(commands.Cog):
             cursor = await self.bot.CONN.cursor()
             try:
                 command_name = content[1:]
-                command = await self.bot.get_custom_command(command_name)
+                command: CustomCommand = await self.bot.get_custom_command(command_name)
 
                 if command:
                     # Get ratelimit bucket
@@ -376,6 +379,8 @@ class Events(commands.Cog):
 
                     if not retry_after:
                         await channel.send(command.content)
+                        logger = logging.getLogger('brankobot')
+                        logger.info(f'"{author}" used "{command.name}" in #{channel}')
 
                         # Increment usage by 1
                         update_command_query = dedent('''
@@ -427,6 +432,8 @@ class Events(commands.Cog):
         - Brankobot will send a welcoming message if
           that server is small or big RLD Discord.
         '''
+        logger = logging.getLogger('brankobot')
+        logger.info(f'"{member}" joined "{member.guild}"; sending welcome message...')
         guild = member.guild
         channel_id = None
 
@@ -449,7 +456,7 @@ class Events(commands.Cog):
           associated with this user in this guild.
         '''
         logger = logging.getLogger('brankobot')
-        logger.info(f'{member} left {member.guild}; removing reminders/birthday')
+        logger.info(f'"{member}" left "{member.guild}"; removing reminders/birthday...')
         text_channels = {tc.id for tc in member.guild.text_channels}
 
         cursor = await self.bot.CONN.cursor()
