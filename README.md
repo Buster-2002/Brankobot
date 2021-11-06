@@ -59,6 +59,10 @@ You are allowed to use this code, however it is purely designed for the two afor
 * `outside`
 * `fact`
 * `poll`
+* `birthday`
+  - `average`
+  - `info`
+  - `remove`
 * `joke`
   - `dad`
   - `dark`
