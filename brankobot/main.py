@@ -36,6 +36,7 @@ import logging
 import os
 import sys
 import time
+from contextlib import suppress
 from datetime import datetime
 from difflib import get_close_matches
 from functools import lru_cache
@@ -48,7 +49,9 @@ from dotenv import load_dotenv
 
 from cogs.utils.enums import Region, WotApiType
 from cogs.utils.errors import ApiError, TankNotFound
-from cogs.utils.models import Achievement, CustomCommand, Reminder, Tank
+from cogs.utils.helpers import ConfirmUI, Loading
+from cogs.utils.models import (Achievement, Birthday, CustomCommand, Reminder,
+                               Tank)
 
 load_dotenv()
 
@@ -187,6 +190,46 @@ class Context(commands.Context):
         return await self.send(**options)
 
 
+    async def confirm(self, prompt: str, timeout: int = 30) -> bool:
+        '''Uses a confirmation UI with Confirm and Cancel button
+
+        Parameters
+        ----------
+        prompt : str
+            The message to prompt the UI with
+
+        timeout : int
+            The timeout for the UI
+
+        Returns
+        -------
+        bool
+            True if confirmed, False if cancelled or timed out
+        '''
+        view = ConfirmUI(timeout)
+        msg = await self.send(prompt, view=view)
+        await view.wait()
+        await msg.delete()
+        return bool(view.value)
+
+
+    def loading(self, *, initial_message: Optional[str] = None) -> Loading:
+        '''Returns an async contextmanager that shows a loading message
+           during the process
+
+        Parameters
+        ----------
+        initial_message : Optional[str]
+            The initial message to send
+
+        Returns
+        -------
+        Loading
+            A context manager which you can use to update the message
+        '''
+        return Loading(self, initial_message=initial_message)
+
+
 class Bot(commands.Bot):
     def __init__(self):
         super().__init__(
@@ -195,8 +238,8 @@ class Bot(commands.Bot):
             enable_debug_events=True, # on_socket_raw_send/receive
             description='A bot for the RLD WoT clan Discord server',
             intents=discord.Intents(
-                guilds=True,          # get_channel
-                members=True,         # on_member_join, get_user, get_member, roles, nick
+                guilds=True,          # get_channel, get_guild
+                members=True,         # on_member_join, on_member_remove, get_user, get_member, roles, nick
                 presences=True,       # Only used for offline command (Getting jocs status)
                 guild_messages=True,  # on_message
                 guild_reactions=True, # For menus
@@ -261,6 +304,68 @@ class Bot(commands.Bot):
             logger.exception('Unexpected error')
 
 
+    async def get_birthday(self, user_id: int) -> Optional[Birthday]:
+        '''Gets a birthday by user id
+
+        Args:
+            user_id (int): The owner of the birthday by ID
+
+        Returns:
+            Optional[Birthday]: The birthday if found
+        '''
+        cursor = await self.CONN.cursor()
+        try:
+            select_birthday_query = dedent('''
+                SELECT *
+                FROM birthdays
+                WHERE user_id = ?;
+            '''.strip())
+
+            result = await cursor.execute(
+                select_birthday_query,
+                (user_id,)
+            )
+            row = await result.fetchone()
+
+            if row:
+                return Birthday(*row)
+
+            return None
+
+        finally:
+            await cursor.close()
+
+
+    async def delete_birthday(self, user_id: int) -> tuple:
+        '''Deletes a birthday from the database
+
+        Args:
+            user_id (int): The user of which the reminder belongs to to delete
+
+        Returns:
+            tuple: The birthday if it was deleted
+        '''
+        cursor = await self.CONN.cursor()
+        try:
+            delete_birthday_query = dedent('''
+                DELETE
+                FROM birthdays
+                WHERE user_id = ?
+                RETURNING *;
+            '''.strip())
+
+            result = await cursor.execute(
+                delete_birthday_query,
+                (user_id,)
+            )
+            row = await result.fetchone()
+            await self.CONN.commit()
+            return row
+
+        finally:
+            await cursor.close()
+
+
     async def delete_reminder(self, reminder: Reminder):
         '''Deletes a reminder from the database and local dict
 
@@ -279,7 +384,10 @@ class Bot(commands.Bot):
                 (reminder.id,)
             )
             await self.CONN.commit()
-            self.REMINDER_TASKS.pop(reminder.id)
+
+            with suppress(Exception):
+                self.bot.REMINDER_TASKS[reminder.id]['task'].cancel()
+                self.bot.REMINDER_TASKS.pop(reminder.id)
 
         finally:
             await cursor.close()
@@ -327,7 +435,7 @@ class Bot(commands.Bot):
         '''Gets a custom command by name
 
         Args:
-            command_name (str): the custom commands name
+            command_name (str): The custom commands name
 
         Returns:
             Optional[CustomCommand]: The custom command if found
@@ -339,11 +447,13 @@ class Bot(commands.Bot):
                 FROM custom_commands
                 WHERE name = ?;
             '''.strip())
+
             result = await cursor.execute(
                 select_command_query,
                 (command_name,)
             )
             row = await result.fetchone()
+
             if row:
                 return CustomCommand(*row)
 
