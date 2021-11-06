@@ -136,6 +136,7 @@ class Misc(commands.Cog):
 
             result = await cursor.execute(select_commands_query)
             cc_amount, = await result.fetchone()
+            
             start = time.perf_counter()
             resolve_message = await ctx.send('`Resolving...`')
             end = time.perf_counter()

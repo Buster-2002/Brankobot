@@ -46,7 +46,6 @@ from humanize import intcomma
 from matplotlib.dates import DateFormatter, date2num
 from matplotlib.ticker import MaxNLocator
 from PIL import Image, ImageDraw, ImageFont, ImageOps
-from pythonping import ping
 
 from .utils.checks import channel_check
 from .utils.converters import RegionConverter
@@ -54,10 +53,9 @@ from .utils.enums import (BigRLDChannelType, Emote, EventStatusType, FrontType,
                           LoseReasons, MarkType, Region, SmallRLDChannelType,
                           WN8Colour, WotApiType, try_enum)
 from .utils.errors import (ApiError, ClanNotFound, InvalidClan, InvalidFlags,
-                           InvalidNickname, NoMoe, PlayerNotFound,
-                           ReplayError)
+                           InvalidNickname, NoMoe, PlayerNotFound, ReplayError)
 from .utils.flags import MarkCollageFlags, RequirementsFlags, TankStatFlags
-from .utils.helpers import separate_capitals, Loading
+from .utils.helpers import separate_capitals
 from .utils.models import (Achievement, Clan, GlobalmapEvent, GlobalMapFront,
                            Player, Tank, TankStats)
 from .utils.paginators import (ClanWarsPaginator, ReplayPaginator,
@@ -150,8 +148,8 @@ class WoT(commands.Cog):
 
         # Minimum of 4 columns and maximum of 10
         columns = (max(4, min(10, total_marks // 10)),)
-        for mark_range, sizes in to_image_size.items():
-            if total_marks in mark_range:
+        for mark_amount_range, sizes in to_image_size.items():
+            if total_marks in mark_amount_range:
                 return sizes + columns
 
 
@@ -186,7 +184,7 @@ class WoT(commands.Cog):
 
             # Clan wars specific
             'VICTORY_POINTS_CHANGED_FOR_COLLECT_TAXES': (Emote.add, f'**{data.get("victory_points")}** Victory Points added in tier **X** for ownership of provinces.'),
-            'REVOLT_STARTED_ON_PROVINCE': (Emote.revolt, f'A revolt has started in {province} in the **{data.get("front_name")}**')
+            'REVOLT_STARTED_ON_PROVINCE': (Emote.revolt, f'A revolt has started in {province} in the **{data.get("front_name")}**.')
         }
         return messages.get(
             data.get('type'),
@@ -210,7 +208,7 @@ class WoT(commands.Cog):
             char = '↑'
         elif value < 0:
             char = '↓'
-        return f"{char} {abs(value)}"
+        return f'{char} {abs(value)}'
 
 
     @alru_cache(maxsize=1024)
@@ -536,7 +534,7 @@ class WoT(commands.Cog):
     @commands.command(aliases=['replay'])
     async def replayinfo(self, ctx: commands.Context, replay_message: discord.Message):
         '''Extracts info from a .wotreplay file'''
-        async with Loading(ctx, initial_message='Downloading') as loader:
+        async with ctx.loading(initial_message='Downloading') as loader:
             try:
                 # Check if replay_message contains a .wotreplay file
                 if atts := replay_message.attachments:
@@ -604,7 +602,7 @@ class WoT(commands.Cog):
         types = flags.types
         tiers = flags.tiers
 
-        async with Loading(ctx, initial_message='Searching') as loader:
+        async with ctx.loading(initial_message='Searching') as loader:
             player = await self._search_player(player_search, player_region)
             await loader.update('Filtering')
             filtered_data = list(filter(
@@ -733,7 +731,7 @@ class WoT(commands.Cog):
         moe_region = flags.region
         moe_days = flags.moe_days
 
-        async with Loading(ctx, initial_message='Gathering') as loader:
+        async with ctx.loading(initial_message='Gathering') as loader:
             tank = self.bot.search_tank(tank_search, 'short_name')
             embed = await ctx.send_response(
                 tank.tank_summary,
@@ -1251,7 +1249,7 @@ class WoT(commands.Cog):
             log_data = data['data']
 
             if not log_data:
-                return await ctx.send(f'{clean_clan_tag} has no battles registered yet.')
+                return await ctx.reply(f'{clean_clan_tag} has no battles registered yet', delete_after=60, mention_author=False)
 
             # Formatting clanlogs
             data_formatted = []
@@ -1294,7 +1292,7 @@ class WoT(commands.Cog):
             ]
 
             if not battle_data:
-                return await ctx.send(f'{clean_clan_tag} has no battles registered yet.')
+                return await ctx.reply(f'{clean_clan_tag} has no battles registered yet', delete_after=60, mention_author=False)
 
             # Formatting battles
             data_formatted = []
@@ -1475,7 +1473,7 @@ class WoT(commands.Cog):
             province_data = data['data'][str(clan.id)]
 
             if not province_data:
-                return await ctx.send(f'{clean_clan_tag} has no provinces yet.')
+                return await ctx.reply(f'{clean_clan_tag} has no provinces yet', delete_after=60, mention_author=False)
 
             # Formatting provinces
             data_formatted, total_income = [], 0
