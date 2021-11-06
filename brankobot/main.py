@@ -85,12 +85,17 @@ EXTENSIONS = {
 def get_prefix(_bot: commands.Bot, _message: discord.Message) -> commands.when_mentioned_or:
     '''Returns a prefix used for the bot
 
-    Args:
-        bot (commands.Bot): The bot instance
-        message (discord.Message): The message instance that was send, and the bot is now checking for prefix
+    Parameters
+    ----------
+    _bot : commands.Bot
+        The bot instance
+    _message : discord.Message
+        The message instance that was send, and the bot is now checking for prefix
 
-    Returns:
-        commands.when_mentioned_or: Allows for the bot to be mentioned, as well as the prefixes to be used as prefix
+    Returns
+    -------
+    commands.when_mentioned_or
+        Allows for the bot to be mentioned, as well as the prefixes to be used
     '''
     prefixes = (
         '?',
@@ -107,24 +112,47 @@ class Context(commands.Context):
         message: str = '',
         **kwargs
     ) -> Union[discord.Message, discord.Embed]:
-        '''Sends an embed to ctx with the given title and description
+        '''Sends an embed to ctx channel with the given options
 
-        Args:
-            message (str, optional): The primary message to send. Defaults to ''.
-            url (str, optional): The url for title
-            title (str, optional): The embed title. Defaults to command name.
-            image (str, optional): The image to send. Defaults to Embed.Empty.
-            thumbnail (str, optional): The thumbnail to send. Defaults to Embed.Empty.
-            fields (List[Tuple[str, str, Optional[bool]]], optional): The embed fields to include. Defaults to None.
-            files (Union[List[File], File], optional): The files to upload along with the message. Defaults to None.
-            send (bool, optional): Whether to send the embed or return the embed.
+        Parameters
+        ----------
+        message : str, optional
+            The primary message to send (embed description), by default ''
+        title : str, optional
+            The embed title, by default the qualified command name
+        url : str, optional
+            The url for title, by default none
+        colour : Union[int, discord.Colour], optional
+            The embed side bar colour, defaults to BrankoBot orange
+        image : str, optional
+            The image to put inside of the embed, defaults to none
+        thumbnail : str, optional
+            The thumbnail to put inside of the embed, defaults to none
+        fields : List[Tuple[str, str, Optional[bool]]], optional
+            The fields to include inside of the embed, defaults to none
+        files : Union[List[File], File]
+            The files or file to attach to the message, defaults to none
+        delete_after : int, optional
+            The amount of seconds after which to delete the message, defaults to none
+        send : bool, optional
+            True to send the message,
+            False to return the Embed instance, defaults to True
+        show_invoke_speed : bool, optional
+            True to add the time it took from command invoke to calling this method
+            False to not add it, defaults to True
+        add_reference : bool, optional
+            True to reply to the message that invoked the command
+            False to not, defaults to True
 
-        Returns:
-            Union[discord.Message, discord.Embed]: The embedded message or the to be send embed
+        Returns
+        -------
+        Union[discord.Message, discord.Embed]
+            Either the resulting Message from sending the response
+            or the Embed instance to send, depending on `send`
         '''
         title: str = kwargs.get('title', self.command.qualified_name.title())
         url: str = kwargs.get('url', discord.Embed.Empty)
-        colour: int = kwargs.get('colour', 14389052)
+        colour: Union[int, discord.Colour] = kwargs.get('colour', 14389052)
         thumbnail: str = kwargs.get('thumbnail', discord.Embed.Empty)
         image: str = kwargs.get('image', discord.Embed.Empty)
         files: Union[List[discord.File], discord.File] = kwargs.get('files', [])
@@ -281,13 +309,17 @@ class Bot(commands.Bot):
 
 
     async def on_error(self, event: str, *args, **kwargs) -> Optional[discord.Message]:
-        '''Handles errors for events
+        '''Handles errors for events and the ones raised in `on_command_error`
 
-        Args:
-            event (str): The event in which the error occurred
+        Parameters
+        ----------
+        event : str
+            The event in which the error occurred
 
-        Returns:
-            Optional[discord.Message]: The error message replying to the message that caused the error
+        Returns
+        -------
+        Optional[discord.Message]
+            The error message replying to the message that caused the error
         '''
         exception_type, error, traceback = sys.exc_info()
         if event == 'on_message':
@@ -305,13 +337,17 @@ class Bot(commands.Bot):
 
 
     async def get_birthday(self, user_id: int) -> Optional[Birthday]:
-        '''Gets a birthday by user id
+        '''Gets the birthday from database belonging to user id
 
-        Args:
-            user_id (int): The owner of the birthday by ID
+        Parameters
+        ----------
+        user_id : int
+            The owner of the birthday by ID, to search with
 
-        Returns:
-            Optional[Birthday]: The birthday if found
+        Returns
+        -------
+        Optional[Birthday]
+            The birthday if found
         '''
         cursor = await self.CONN.cursor()
         try:
@@ -339,11 +375,15 @@ class Bot(commands.Bot):
     async def delete_birthday(self, user_id: int) -> tuple:
         '''Deletes a birthday from the database
 
-        Args:
-            user_id (int): The user of which the reminder belongs to to delete
+        Parameters
+        ----------
+        user_id : int
+            The owner of the birthday by ID, to delete
 
-        Returns:
-            tuple: The birthday if it was deleted
+        Returns
+        -------
+        tuple
+            [description]
         '''
         cursor = await self.CONN.cursor()
         try:
@@ -369,8 +409,10 @@ class Bot(commands.Bot):
     async def delete_reminder(self, reminder: Reminder):
         '''Deletes a reminder from the database and local dict
 
-        Args:
-            reminder (Reminder): The reminder to delete
+        Parameters
+        ----------
+        reminder : Reminder
+            The reminder to delete
         '''
         cursor = await self.CONN.cursor()
         try:
@@ -403,8 +445,10 @@ class Bot(commands.Bot):
         Dispatches an event, on_reminder_due, when the
         reminder sleep finished
 
-        Args:
-            reminder (Reminder): The reminder to start a timer for
+        Parameters
+        ----------
+        reminder : Reminder
+            The reminder to start a timer for
         '''
         cursor = await self.CONN.cursor()
         try:
@@ -434,11 +478,15 @@ class Bot(commands.Bot):
     async def get_custom_command(self, command_name: str) -> Optional[CustomCommand]:
         '''Gets a custom command by name
 
-        Args:
-            command_name (str): The custom commands name
+        Parameters
+        ----------
+        command_name : str
+            The custom commands name
 
-        Returns:
-            Optional[CustomCommand]: The custom command if found
+        Returns
+        -------
+        Optional[CustomCommand]
+            The custom command, if found
         '''
         cursor = await self.CONN.cursor()
         try:
@@ -466,14 +514,20 @@ class Bot(commands.Bot):
     @lru_cache(maxsize=64)
     def search_achievement(self, achievement_search: str, key: str = 'internal_name') -> Achievement:
         '''Cached
+
         Searches for an achievement by key in internal list
 
-        Args:
-            achievement_search (str): The string to search by
-            key (str, optional): The achievement key to search by. Defaults to 'internal_name'.
+        Parameters
+        ----------
+        achievement_search : str
+            The achievement name to search by
+        key : str, optional
+            The Achievement model key to search by, by default 'internal_name'
 
-        Returns:
-            Achievement: The achievement, if found
+        Returns
+        -------
+        Achievement
+            The achievement, if found
         '''
         possibilities = {getattr(v, key): k for k, v in self.ACHIEVEMENTS.items()}
         matches = get_close_matches(
@@ -489,17 +543,25 @@ class Bot(commands.Bot):
     @lru_cache(maxsize=256)
     def search_tank(self, tank_search: str, key: str = 'internal_name') -> Tank:
         '''Cached
+
         Searches a tank by key in internal list
 
-        Args:
-            tank_search (str): The string to search by
-            key (str, optional): The tank key to search by. Defaults to 'internal_name'.
+        Parameters
+        ----------
+        tank_search : str
+            The tank name to search by
+        key : str, optional
+            The Tank model key to search by, by default 'internal_name'
 
-        Raises:
-            TankNotFound: The tank wasn't found
+        Returns
+        -------
+        Tank
+            The tank, if found
 
-        Returns:
-            Tank: The tank, if found
+        Raises
+        ------
+        TankNotFound
+            The tank wasn't found
         '''
         possibilities = {getattr(v, key): k for k, v in self.TANKS.items()}
         matches = get_close_matches(
@@ -530,22 +592,34 @@ class Bot(commands.Bot):
         region: Region = Region.eu,
         api_type: WotApiType = WotApiType.official
     ) -> dict:
-        '''Sends a request to one of the three WoT api's
+        '''Sends a request to one of the three WoT api's and returns results
 
-        Args:
-            endpoint (str): The endpoint to use
-            method (str, optional): The HTTP method to use. Defaults to 'GET'.
-            params (dict, optional): The params to pass. Defaults to {}.
-            headers (dict, optional): The headers to pass. Defaults to {}.
-            payload (dict, optional): The payload to pass. Defaults to None.
-            region (Region, optional): The API region to use. Defaults to Region.eu.
-            api_type (WotApiType, optional): The API type to use. Defaults to WotApiType.official.
+        Parameters
+        ----------
+        endpoint : str
+            The endpoint to use
+        method : str, optional
+            The HTTP method to use, by default 'GET'
+        params : dict, optional
+            The params to pass, by default {}
+        headers : dict, optional
+            The headers to pass, by default {}
+        payload : dict, optional
+            The payload to pass, by default None
+        region : Region, optional
+            The API region to use, by default Region.eu
+        api_type : WotApiType, optional
+            The API type to use, by default WotApiType.official
 
-        Raises:
-            ApiError: Getting the data failed
+        Returns
+        -------
+        dict
+            The API response
 
-        Returns:
-            dict: The API response
+        Raises
+        ------
+        ApiError
+            Getting the data failed
         '''
         region = str(region).lower()
 

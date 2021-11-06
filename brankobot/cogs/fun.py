@@ -104,76 +104,20 @@ class Fun(commands.Cog):
 
 
     @staticmethod
-    def _get_joke(api_response: dict) -> str:
-        '''Returns a message based on whether the joke is twopart of a singular setup
-
-        Args:
-            api_response (dict): The response of the API
-
-        Returns:
-            str: A message containing either a twopart or singular joke
-        '''
-        if api_response['type'] == 'twopart':
-            return f'{api_response["setup"]}\n\n{api_response["delivery"]}'
-        return api_response['joke']
-
-
-    def _input_check(self, text: str) -> bool:
-        '''Checks if text is good to repeat back
-
-        Args:
-            text (str): The input text to check
-
-        Returns:
-            bool: True if there is no blacklisted_words, and the length is below 100
-        '''
-        # This is kinda useless but still funny if
-        # someone tries to say something with these and fails
-        blacklisted_words  = {
-            'nigger',
-            'cunt',
-            'faggot',
-            'retard',
-            'chink',
-            'motherfucker',
-            'gay',
-            'jew'
-        }
-        text = remove_markdown(text.casefold())
-        if any([bw in text for bw in blacklisted_words]) or len(text) > 100:
-            return False
-        return True
-
-
-    async def _get_bytes(self, item) -> bytes:
-        '''Returns bytes for given item
-
-        Args:
-            item: the item to convert into bytes
-            can be a discord.Attachment, discord.User/discord.Member/discord.ClientUser or a direct image url
-
-        Returns:
-            bytes: the item (image) as bytes
-        '''
-        if isinstance(item, discord.Attachment):
-            return await item.read()
-
-        if isinstance(item, (discord.User, discord.Member, discord.ClientUser)):
-            item = str(item.display_avatar)
-
-        async with self.bot.AIOHTTP_SESSION.get(item) as response:
-            return await response.read()
-
-
-    def _generate_caption(self, im_bytes: bytes, text: str) -> discord.File:
+    def _generate_caption(im_bytes: bytes, text: str) -> discord.File:
         '''Adds a caption to an image
 
-        Args:
-            im_bytes (bytes): The image as bytes to add caption to
-            text (str): The caption text
+        Parameters
+        ----------
+        im_bytes : bytes
+            The image as bytes to add the caption to
+        text : str
+            The caption text
 
-        Returns:
-            discord.File: The captioned image
+        Returns
+        -------
+        discord.File
+            The captioned image
         '''
         im = Image.open(BytesIO(im_bytes))
         frames = []
@@ -219,6 +163,85 @@ class Fun(commands.Cog):
         save_transparent_gif(frames, im.info.get('duration', 64), fp)
         fp.seek(0)
         return discord.File(fp, f'caption.{ft}'), ft
+
+
+    @staticmethod
+    def _format_joke(api_response: dict) -> str:
+        '''Formats a joke based on whether the joke is of a twopart
+           or singular setup
+
+        Parameters
+        ----------
+        api_response : dict
+            The response of the API containing the joke
+
+        Returns
+        -------
+        str
+            A message containing either a twopart or singular joke
+        '''
+        if api_response['type'] == 'twopart':
+            return f'{api_response["setup"]}\n\n{api_response["delivery"]}'
+
+        return api_response['joke']
+
+
+    @staticmethod
+    def _check_input(text: str) -> bool:
+        '''Checks if text is okay to repeat back
+
+        This is kinda useless but still funny if someone tries to say
+        something with these and fails
+
+        Parameters
+        ----------
+        text : str
+            The input text to check
+
+        Returns
+        -------
+        bool
+            True if there is no blacklisted_words, and the length is below 100
+            False if not
+        '''
+        blacklisted_words  = {
+            'nigger',
+            'cunt',
+            'faggot',
+            'retard',
+            'chink',
+            'motherfucker',
+            'gay',
+            'jew'
+        }
+        text = remove_markdown(text.casefold())
+        if any([bw in text for bw in blacklisted_words]) or len(text) > 100:
+            return False
+
+        return True
+
+
+    async def _get_bytes(self, item: Union[discord.Attachment, discord.User, discord.Member, discord.ClientUser, str]) -> bytes:
+        '''Returns image bytes for given item
+
+        Parameters
+        ----------
+        item : Union[discord.Attachment, discord.User, discord.Member, discord.ClientUser, str]
+            The item to convert into bytes by taking the image assocated with it
+
+        Returns
+        -------
+        bytes
+            The associated image as bytes
+        '''
+        if isinstance(item, discord.Attachment):
+            return await item.read()
+
+        if isinstance(item, (discord.User, discord.Member, discord.ClientUser)):
+            item = str(item.display_avatar)
+
+        async with self.bot.AIOHTTP_SESSION.get(item) as response:
+            return await response.read()
 
 
     @channel_check()
@@ -345,7 +368,7 @@ class Fun(commands.Cog):
     @commands.command(aliases=['echo'])
     async def say(self, ctx: Context, *, message: str):
         '''Brankobot will repeat your message input'''
-        if not self._input_check(message):
+        if not self._check_input(message):
             await ctx.send(random.choice(self._echo_responses))
         else:
             await ctx.message.delete()
@@ -441,7 +464,7 @@ class Fun(commands.Cog):
 
         finally:
             await cursor.close()
-    
+
     @commands.cooldown(1, 300, commands.BucketType.user)
     @birthday.command('info', aliases=['daysleft', 'show'])
     async def birthday_info(self, ctx: Context):
@@ -554,19 +577,19 @@ class Fun(commands.Cog):
     async def joke_dark(self, ctx: Context):
         '''Will send a random dark joke from [this website](https://sv443.net/jokeapi)'''
         r = await (await self.bot.AIOHTTP_SESSION.get('https://sv443.net/jokeapi/v2/joke/Dark')).json()
-        await ctx.send_response(self._get_joke(r))
+        await ctx.send_response(self._format_joke(r))
 
     @joke.command('pun')
     async def joke_pun(self, ctx: Context):
         '''Will send a random pun joke from [this website](https://sv443.net/jokeapi)'''
         r = await (await self.bot.AIOHTTP_SESSION.get('https://sv443.net/jokeapi/v2/joke/Pun')).json()
-        await ctx.send_response(self._get_joke(r))
+        await ctx.send_response(self._format_joke(r))
 
     @joke.command('misc')
     async def joke_misc(self, ctx: Context):
         '''Will send a random miscellaneous joke from [this website](https://sv443.net/jokeapi)'''
         r = await (await self.bot.AIOHTTP_SESSION.get('https://sv443.net/jokeapi/v2/joke/Miscellaneous')).json()
-        await ctx.send_response(self._get_joke(r))
+        await ctx.send_response(self._format_joke(r))
 
 
 def setup(bot):

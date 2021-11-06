@@ -105,11 +105,30 @@ class Loading:
 
     @staticmethod
     def _format_message(message: Optional[str]) -> str:
+        '''Formats a message for the loader
+
+        Parameters
+        ----------
+        message : Optional[str]
+            The message text to format
+
+        Returns
+        -------
+        str
+            The message text + loading emote or just the loading emote
+        '''
         if message:
             return f'{Emote.loading} {message}...'
         return str(Emote.loading)
 
     async def update(self, message: Optional[str]) -> None:
+        '''Updates the loading message content
+
+        Parameters
+        ----------
+        message : Optional[str]
+            The new content of the loading message
+        '''
         with suppress(discord.HTTPException):
             if self._message.content != message:
                 self._message = await self._message.edit(
@@ -132,7 +151,7 @@ class ConfirmUI(discord.ui.View):
         self.value: bool = None
 
     @discord.ui.button(
-        label='Confirm', 
+        label='Confirm',
         style=discord.ButtonStyle.green,
         emoji='✔️'
     )
@@ -141,7 +160,7 @@ class ConfirmUI(discord.ui.View):
         self.stop()
 
     @discord.ui.button(
-        label='Cancel', 
+        label='Cancel',
         style=discord.ButtonStyle.red,
         emoji='✖️'
     )
