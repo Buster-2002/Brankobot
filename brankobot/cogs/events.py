@@ -506,7 +506,6 @@ class Events(commands.Cog):
         '''
         Called for every error raised inside of a command
         - Handles error by sending message with information'''
-        raise error
         if ctx.command:
             ctx.command.reset_cooldown(ctx)
 
