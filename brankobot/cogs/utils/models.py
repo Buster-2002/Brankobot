@@ -36,6 +36,19 @@ from .enums import (Emote, EventStatusType, FormattedNationType,
 
 
 @dataclass
+class Birthday:
+    id: int
+    user_id: int
+    server_id: int
+    date_string: str
+
+    @property
+    def date(self) -> datetime:
+        year, month, day = map(int, self.date_string.split('-'))
+        return datetime(year=year, month=month, day=day)
+
+
+@dataclass
 class Achievement:
     id: int
     name: str
