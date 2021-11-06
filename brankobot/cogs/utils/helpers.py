@@ -24,6 +24,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 '''
 
+import datetime
 import re
 from contextlib import suppress
 from types import TracebackType
@@ -40,13 +41,12 @@ def separate_capitals(word: str) -> str:
 
     Example
     -------
-
     >>> separate_capitals("camelCaseWord")
     'Camel Case Word'
 
     Parameters
     ----------
-    word : str 
+    word : str
         The word to split up into a proper title
 
     Returns
@@ -58,33 +58,68 @@ def separate_capitals(word: str) -> str:
 
 
 def average(iterable: Iterable[int]) -> float:
+    '''Returns the average number of a list/tuple/etc
+
+    Parameters
+    ----------
+    iterable : Iterable[int]
+        The iterable to return the average of
+
+    Returns
+    -------
+    float
+        The average of the iterable of numbers
+    '''
     return sum(iterable) / len(iterable)
 
 
+def get_next_birthday(birth_date: datetime.datetime) -> datetime.datetime:
+    '''Returns next birthday date for a given birth date
+
+    Parameters
+    ----------
+    birth_date : datetime.datetime
+        The birth date
+
+    Returns
+    -------
+    datetime.datetime
+        The next birthday date, taking into account whether
+        it has already been this year.
+    '''
+    today = datetime.date.today()
+    year = today.year
+
+    # If birthday has already been this year, we take the next year
+    if (today.month > birth_date.month) or (today.month == birth_date.month and today.day > birth_date.day):
+        year += 1
+
+    return datetime.datetime(year, birth_date.month, birth_date.day)
+
+
 class Loading:
-    def __init__(self, ctx: commands.Context, /, initial_message: str = None):
+    def __init__(self, ctx: commands.Context, initial_message: str):
         self.ctx = ctx
         self.initial_message: Optional[str] = initial_message
         self._message: discord.Message = None
 
-
     @staticmethod
     def _format_message(message: Optional[str]) -> str:
         if message:
-            return f"{Emote.loading} {message}..."
+            return f'{Emote.loading} {message}...'
         return str(Emote.loading)
 
-
-    async def update(self, message: str = None) -> None:
+    async def update(self, message: Optional[str]) -> None:
         with suppress(discord.HTTPException):
             if self._message.content != message:
-                self._message = await self._message.edit(content=self._format_message(message))
-
+                self._message = await self._message.edit(
+                    content=self._format_message(message),
+                    allowed_mentions=discord.AllowedMentions(replied_user=False)
+                )
 
     async def __aenter__(self) -> "Loading":
-        self._message = await self.ctx.send(self._format_message(self.initial_message))
+        self._message = await self.ctx.reply(self._format_message(self.initial_message), mention_author=False)
         return self # Necessary to return instance for "as" statement
-
 
     async def __aexit__(self, exc_type: type, exc: Exception, tb: TracebackType) -> None:
         with suppress(discord.HTTPException, AttributeError):
@@ -96,37 +131,21 @@ class ConfirmUI(discord.ui.View):
         super().__init__(timeout=timeout)
         self.value: bool = None
 
-
-    @discord.ui.button(label='Confirm', style=discord.ButtonStyle.green)
+    @discord.ui.button(
+        label='Confirm', 
+        style=discord.ButtonStyle.green,
+        emoji='✔️'
+    )
     async def confirm(self, button: discord.ui.Button, interaction: discord.Interaction):
         self.value = True
         self.stop()
 
-
-    @discord.ui.button(label='Cancel', style=discord.ButtonStyle.red)
+    @discord.ui.button(
+        label='Cancel', 
+        style=discord.ButtonStyle.red,
+        emoji='✖️'
+    )
     async def cancel(self, button: discord.ui.Button, interaction: discord.Interaction):
         await interaction.response.send_message('no? alright, cancelled operation', ephemeral=True)
         self.value = False
         self.stop()
-
-
-async def confirm(ctx: commands.Context, prompt: str, timeout: int = 30) -> bool:
-    '''Uses a confirmation UI with Confirm and Cancel button
-
-    Parameters
-    ----------
-    ctx : commands.Context
-        The context under which to use this UI
-    prompt : str
-        The message to prompt the UI with
-
-    Returns
-    -------
-    bool
-        True if confirmed, False if cancelled or timed out
-    '''
-    view = ConfirmUI(timeout)
-    msg = await ctx.send(prompt, view=view)
-    await view.wait()
-    await msg.delete()
-    return bool(view.value)
