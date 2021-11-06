@@ -38,7 +38,7 @@ from discord import __version__ as dcversion
 from discord.ext import commands
 from humanize import intcomma, naturalsize, precisedelta
 
-from main import __version__ as botversion
+from main import __version__ as botversion, Bot, Context
 from .utils.checks import channel_check, role_check
 
 
@@ -46,12 +46,12 @@ class Misc(commands.Cog):
     '''Some misc commands'''
 
     def __init__(self, bot):
-        self.bot = bot
+        self.bot: Bot = bot
 
 
     @commands.has_permissions(manage_messages=True)
     @commands.command()
-    async def cleanup(self, ctx: commands.Context, search: int = 100):
+    async def cleanup(self, ctx: Context, search: int = 100):
         '''Deletes bot messages in current channel'''
         prefixes = tuple(await self.bot.get_prefix(ctx.message))
         def check(message: discord.Message):
@@ -79,7 +79,7 @@ class Misc(commands.Cog):
     @role_check()
     @commands.cooldown(5, 60, commands.BucketType.guild)
     @commands.command()
-    async def ping(self, ctx: commands.Context):
+    async def ping(self, ctx: Context):
         '''Resolves the websocket (API) latency and total message latency'''
         start = time.perf_counter()
         message = await ctx.send('`Resolving...`')
@@ -90,7 +90,7 @@ class Misc(commands.Cog):
 
     @commands.is_owner()
     @commands.command(hidden=True)
-    async def restart(self, ctx: commands.Context):
+    async def restart(self, ctx: Context):
         '''Restarts brankobot'''
         await self.bot.CONN.commit()
         await self.bot.CONN.close()
@@ -101,7 +101,7 @@ class Misc(commands.Cog):
 
     @commands.is_owner()
     @commands.command(hidden=True)
-    async def botlog(self, ctx: commands.Context):
+    async def botlog(self, ctx: Context):
         '''Sends bot log'''
         with open('brankobot.log', encoding='utf-8') as logfile:
             content = logfile.read()
@@ -113,7 +113,7 @@ class Misc(commands.Cog):
 
     @commands.is_owner()
     @commands.command(hidden=True)
-    async def reload(self, ctx: commands.Context, module: str = None):
+    async def reload(self, ctx: Context, module: str = None):
         if module:
             self.bot.reload_extension(module)
         else:
@@ -125,7 +125,7 @@ class Misc(commands.Cog):
 
     @commands.is_owner()
     @commands.command(aliases=['memory', 'pinfo'])
-    async def processinfo(self, ctx: commands.Context):
+    async def processinfo(self, ctx: Context):
         '''Shows bot process info'''
         cursor = await self.bot.CONN.cursor()
         try:

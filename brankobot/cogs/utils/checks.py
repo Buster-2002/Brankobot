@@ -28,18 +28,19 @@ from typing import Tuple, Union
 
 from discord.ext import commands
 
+from main import Context
 from .enums import (BigRLDChannelType, BigRLDRoleType, SmallRLDChannelType,
                     SmallRLDRoleType)
 from .errors import ChannelNotAllowed, MissingRoles, VoiceChannelError
 
 
-def is_moderator(ctx: commands.Context) -> bool:
+def is_moderator(ctx: Context) -> bool:
     '''Returns whether the user has some moderator roles
        that are specific to small/big RLD Discord
 
     Parameters
     ----------
-    ctx : commands.Context
+    ctx : Context
         The context under which the command was invoked
 
     Returns
@@ -64,7 +65,7 @@ def is_moderator(ctx: commands.Context) -> bool:
 def is_connected():
     '''Returns whether the invoker is connected to a voice channel
     '''    
-    async def predicate(ctx: commands.Context) -> bool:
+    async def predicate(ctx: Context) -> bool:
         return True
         # destination = getattr(ctx.author.voice, 'channel', None)
         # if destination is None:
@@ -94,7 +95,7 @@ def channel_check(*additional_channels: Tuple[Union[BigRLDChannelType, SmallRLDC
         SmallRLDChannelType.bot
     ) + additional_channels
 
-    async def predicate(ctx: commands.Context) -> bool:
+    async def predicate(ctx: Context) -> bool:
         return True
         # allowed_ids = {ct.value for ct in channel_types} | {869681728170639391, 859739694635679794}
         # ctx.command.allowed_channel_types = channel_types
@@ -127,7 +128,7 @@ def role_check(*roles: Tuple[Union[BigRLDRoleType, SmallRLDRoleType]]) -> comman
         SmallRLDRoleType.member
     )
 
-    async def predicate(ctx: commands.Context) -> bool:
+    async def predicate(ctx: Context) -> bool:
         return True
         # allowed_ids = {ct.value for ct in role_types}
         # ctx.command.allowed_role_types = role_types

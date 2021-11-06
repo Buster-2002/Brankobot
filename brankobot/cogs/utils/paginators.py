@@ -33,6 +33,7 @@ from discord.ext import commands, menus
 from discord.utils import escape_markdown, format_dt
 from humanize import intcomma, precisedelta
 
+from main import Context
 from .helpers import separate_capitals
 from .models import Achievement, CustomCommand, Reminder
 from .wotreplay_folder import (BattleEconomy, BattlePerformance, BattlePlayer,
@@ -40,7 +41,7 @@ from .wotreplay_folder import (BattleEconomy, BattlePerformance, BattlePlayer,
 
 
 class MusicQueuePaginator(menus.ListPageSource):
-    def __init__(self, data, ctx: commands.Context):
+    def __init__(self, data, ctx: Context):
         super().__init__(
             data,
             per_page=1
@@ -71,7 +72,7 @@ class MusicQueuePaginator(menus.ListPageSource):
 
 
 class CustomCommandsPaginator(menus.ListPageSource):
-    def __init__(self, data, ctx: commands.Context, user: discord.User = None):
+    def __init__(self, data, ctx: Context, user: discord.User = None):
         super().__init__(
             data,
             per_page=10
@@ -93,7 +94,7 @@ class CustomCommandsPaginator(menus.ListPageSource):
 
 
 class ReminderPaginator(menus.ListPageSource):
-    def __init__(self, data, ctx: commands.Context):
+    def __init__(self, data, ctx: Context):
         super().__init__(data, per_page=3)
         self.ctx = ctx
 
@@ -118,7 +119,7 @@ class ReminderPaginator(menus.ListPageSource):
 
 
 class ReplayPaginator(menus.ListPageSource):
-    def __init__(self, data, ctx: commands.Context, meta_data: dict):
+    def __init__(self, data, ctx: Context, meta_data: dict):
         super().__init__(data, per_page=1)
         self.ctx = ctx
         self.meta_data = meta_data
@@ -276,7 +277,7 @@ class ReplayPaginator(menus.ListPageSource):
 
 
 class TankStatsPaginator(menus.ListPageSource):
-    def __init__(self, data, ctx: commands.Context, player: str, url: str):
+    def __init__(self, data, ctx: Context, player: str, url: str):
         super().__init__(data, per_page=1)
         self.ctx = ctx
         self.player = player
@@ -298,7 +299,7 @@ class TankStatsPaginator(menus.ListPageSource):
 
 
 class ClanWarsPaginator(menus.ListPageSource):
-    def __init__(self, data, ctx: commands.Context, *args, **kwargs):
+    def __init__(self, data, ctx: Context, *args, **kwargs):
         super().__init__(data, per_page=6)
         self.ctx = ctx
         self.args = args

@@ -38,6 +38,7 @@ from discord.ext.menus.views import ViewMenuPages
 from humanize import intcomma
 from youtube_dl import YoutubeDL
 
+from main import Bot, Context
 from .utils.checks import channel_check, is_connected, role_check
 from .utils.enums import Emote
 from .utils.errors import (EmptyQueue, InvalidVolume, NotPlaying,
@@ -79,7 +80,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
     @classmethod
     async def create_source(
         cls,
-        ctx: commands.Context,
+        ctx: Context,
         search: str,
         *,
         loop: asyncio.BaseEventLoop,
@@ -146,8 +147,8 @@ class YTDLSource(discord.PCMVolumeTransformer):
 class MusicPlayer:
     __slots__ = ('bot', 'ctx', 'started_playing_at', 'queue', 'next', 'current', 'now_playing', 'volume')
 
-    def __init__(self, ctx: commands.Context):
-        self.bot = ctx.bot
+    def __init__(self, ctx: Context):
+        self.bot: Bot = ctx.bot
         self.ctx = ctx
         self.queue = asyncio.Queue()
         self.next = asyncio.Event()
@@ -217,7 +218,7 @@ class MusicPlayer:
 
 class Music(commands.Cog):
     def __init__(self, bot):
-        self.bot = bot
+        self.bot: Bot = bot
 
 
     async def cleanup(self, guild: discord.Guild):
@@ -232,7 +233,7 @@ class Music(commands.Cog):
             del self.bot.MUSIC_PLAYERS[guild.id]
 
 
-    def get_player(self, ctx: commands.Context) -> MusicPlayer:
+    def get_player(self, ctx: Context) -> MusicPlayer:
         try:
             player = self.bot.MUSIC_PLAYERS[ctx.guild.id]
         except KeyError:
@@ -246,7 +247,7 @@ class Music(commands.Cog):
     @channel_check()
     @role_check()
     @commands.command('connect', aliases=['join'])
-    async def connect_(self, ctx: commands.Context):
+    async def connect_(self, ctx: Context):
         '''Connects to your voice channel'''
         destination = ctx.author.voice.channel
         try:
@@ -288,7 +289,7 @@ class Music(commands.Cog):
     @channel_check()
     @role_check()
     @commands.command('play', aliases=['add'])
-    async def play_(self, ctx: commands.Context, *, query: str):
+    async def play_(self, ctx: Context, *, query: str):
         '''Plays a song by search or URL'''
         async with ctx.typing():
             voice_client = ctx.voice_client
@@ -305,7 +306,7 @@ class Music(commands.Cog):
     @channel_check()
     @role_check()
     @commands.command('pause')
-    async def pause_(self, ctx: commands.Context):
+    async def pause_(self, ctx: Context):
         '''Pauses the currently playing song'''
         voice_client = ctx.voice_client
         if voice_client is None or voice_client.is_playing() is False:
@@ -322,7 +323,7 @@ class Music(commands.Cog):
     @channel_check()
     @role_check()
     @commands.command('resume', aliases=['unpause'])
-    async def resume_(self, ctx: commands.Context):
+    async def resume_(self, ctx: Context):
         '''Resumes the currently paused song'''
         voice_client = ctx.voice_client
         if voice_client is None or voice_client.is_connected() is False:
@@ -339,7 +340,7 @@ class Music(commands.Cog):
     @channel_check()
     @role_check()
     @commands.command()
-    async def skip(self, ctx: commands.Context):
+    async def skip(self, ctx: Context):
         '''Skips currently playing song'''
         voice_client = ctx.voice_client
         if voice_client is None or voice_client.is_playing() is False:
@@ -352,7 +353,7 @@ class Music(commands.Cog):
     @is_connected()
     @channel_check()
     @commands.command('queue', aliases=['q', 'playlist', 'queue_info'])
-    async def queue_(self, ctx: commands.Context):
+    async def queue_(self, ctx: Context):
         '''Shows current queue'''
         voice_client = ctx.voice_client
         if voice_client is None or voice_client.is_playing() is False:
@@ -377,7 +378,7 @@ class Music(commands.Cog):
     @is_connected()
     @channel_check()
     @commands.command(aliases=['np', 'nowplaying', 'currentsong', 'playing'])
-    async def current(self, ctx: commands.Context):
+    async def current(self, ctx: Context):
         '''Shows current playing song'''
         voice_client = ctx.voice_client
         if voice_client is None or voice_client.is_connected() is False:
@@ -429,7 +430,7 @@ class Music(commands.Cog):
     @channel_check()
     @role_check()
     @commands.command(aliases=['changevolume', 'vol'])
-    async def volume(self, ctx: commands.Context, volume: float):
+    async def volume(self, ctx: Context, volume: float):
         '''Changes music volume (must be between 0 and 100)'''
         voice_client = ctx.voice_client
         if voice_client is None or voice_client.is_connected() is False:
@@ -451,7 +452,7 @@ class Music(commands.Cog):
     @channel_check()
     @role_check()
     @commands.command(aliases=['quit', 'disconnect'])
-    async def stop(self, ctx: commands.Context):
+    async def stop(self, ctx: Context):
         '''Stops music and clears queue'''
         voice_client = ctx.voice_client
         if voice_client is None or voice_client.is_connected() is False:

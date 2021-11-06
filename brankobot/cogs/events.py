@@ -42,12 +42,12 @@ from discord.message import MessageReference
 from discord.utils import format_dt
 from humanize import naturaldelta
 from humanize.number import ordinal
-from main import __version__ as botversion
 
+from main import __version__ as botversion, Bot, Context
 from .utils.enums import (BigRLDChannelType, Emote, GuildType,
                           SmallRLDChannelType, try_enum)
 from .utils.errors import *
-from .utils.models import Achievement, Birthday, Reminder, Tank, CustomCommand
+from .utils.models import Achievement, Birthday, Reminder, Tank
 
 
 # -- Cog -- #
@@ -60,7 +60,7 @@ class Events(commands.Cog):
     '''
 
     def __init__(self, bot):
-        self.bot = bot
+        self.bot: Bot = bot
         self.counter = 0
         self.custom_command_cooldown = commands.CooldownMapping.from_cooldown(
             rate=10, # Custom commands can be used 10 times every 60 seconds on a per guild basis
@@ -370,7 +370,7 @@ class Events(commands.Cog):
             cursor = await self.bot.CONN.cursor()
             try:
                 command_name = content[1:]
-                command: CustomCommand = await self.bot.get_custom_command(command_name)
+                command = await self.bot.get_custom_command(command_name)
 
                 if command:
                     # Get ratelimit bucket
@@ -490,7 +490,7 @@ class Events(commands.Cog):
 
 
     @commands.Cog.listener()
-    async def on_command(self, ctx: commands.Context):
+    async def on_command(self, ctx: Context):
         '''
         Called for every attempted command invoke
         - Adds an invoke time for a command to calculate
@@ -500,7 +500,7 @@ class Events(commands.Cog):
 
 
     @commands.Cog.listener()
-    async def on_command_completion(self, ctx: commands.Context):
+    async def on_command_completion(self, ctx: Context):
         '''Called when a command successfully finished
         - Bot will log command usage to logging file
         '''
@@ -509,7 +509,7 @@ class Events(commands.Cog):
 
 
     @commands.Cog.listener()
-    async def on_command_error(self, ctx: commands.Context, error: Exception):
+    async def on_command_error(self, ctx: Context, error: Exception):
         '''
         Called for every error raised inside of a command
         - Handles error by sending message with information'''

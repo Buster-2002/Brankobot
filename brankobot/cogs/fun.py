@@ -34,11 +34,10 @@ import dateparser
 import discord
 from discord.ext import commands
 from discord.utils import escape_markdown, format_dt, remove_markdown
-from humanize import naturaldelta, ordinal
+from humanize import intcomma, naturaldelta, ordinal, precisedelta
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageSequence
-from humanize.number import intcomma
-from humanize.time import precisedelta
 
+from main import Bot, Context
 from .utils.checks import channel_check, is_moderator, role_check
 from .utils.enums import (BigRLDChannelType, BigRLDRoleType, Emote, GuildType,
                           SmallRLDChannelType, SmallRLDRoleType)
@@ -54,7 +53,7 @@ class Fun(commands.Cog):
     '''All the commands without a real purpose'''
 
     def __init__(self, bot):
-        self.bot = bot
+        self.bot: Bot = bot
         self._8ball_responses = [
             'it is very certain',
             'it is decidedly so',
@@ -226,7 +225,7 @@ class Fun(commands.Cog):
     @role_check()
     @commands.cooldown(1, 15, commands.BucketType.user)
     @commands.command(aliases=['makememe', 'gifcaption', 'captiongif'])
-    async def caption(self, ctx: commands.Context, link: str, *, text: str):
+    async def caption(self, ctx: Context, link: str, *, text: str):
         '''Will caption your <link> with <text>'''
         async with ctx.loading(initial_message='Downloading') as loader:
             b = await self._get_bytes(link)
@@ -244,7 +243,7 @@ class Fun(commands.Cog):
     @role_check()
     @commands.cooldown(1, 60, commands.BucketType.guild)
     @commands.command()
-    async def offline(self, ctx: commands.Context):
+    async def offline(self, ctx: Context):
         '''Sends an MP3 if Joc666 is offline'''
         guild = self.bot.get_guild(GuildType.big_rld)
         if guild:
@@ -258,7 +257,7 @@ class Fun(commands.Cog):
 
     @commands.cooldown(5, 60, commands.BucketType.guild)
     @commands.command()
-    async def rand(self, ctx: commands.Context, num1: int, num2: int, type: str = None):
+    async def rand(self, ctx: Context, num1: int, num2: int, type: str = None):
         '''Chooses random number'''
         r_int = random.randrange(num1, (num2 + 1))
         if type == 'scale':
@@ -272,7 +271,7 @@ class Fun(commands.Cog):
 
     @commands.command()
     @commands.cooldown(5, 60, commands.BucketType.guild)
-    async def love(self, ctx: commands.Context, *, thing: str):
+    async def love(self, ctx: Context, *, thing: str):
         '''Determines how much you love something'''
         r_int = random.randrange(101)
         if r_int < 33:
@@ -286,7 +285,7 @@ class Fun(commands.Cog):
 
     @commands.command('8ball', aliases=['magic8ball'])
     @commands.cooldown(5, 60, commands.BucketType.guild)
-    async def _8ball(self, ctx: commands.Context):
+    async def _8ball(self, ctx: Context):
         '''Ask magic 8ball a question'''
         await ctx.send(f'{ctx.author.mention}, {random.choice(self._8ball_responses)}')
 
@@ -294,7 +293,7 @@ class Fun(commands.Cog):
     @channel_check(BigRLDChannelType.general)
     @commands.cooldown(1, 3, commands.BucketType.user)
     @commands.command(aliases=['urbandict', 'define'])
-    async def urban(self, ctx: commands.Context, *, query: commands.clean_content):
+    async def urban(self, ctx: Context, *, query: commands.clean_content):
         '''Defines a word using the urban dictionary'''
         r = await self.bot.AIOHTTP_SESSION.get(f'http://api.urbandictionary.com/v0/define?term={query}')
         data = await r.json()
@@ -317,7 +316,7 @@ class Fun(commands.Cog):
     @channel_check(BigRLDChannelType.memes, SmallRLDChannelType.memes)
     @commands.cooldown(1, 3, commands.BucketType.user)
     @commands.command(aliases=['randommeme', 'meme'])
-    async def reddit(self, ctx: commands.Context, subreddit: str = 'memes'):
+    async def reddit(self, ctx: Context, subreddit: str = 'memes'):
         '''Returns a random post from a subreddit'''
         r = await self.bot.AIOHTTP_SESSION.get(f'https://meme-api.herokuapp.com/gimme/{subreddit}')
         data = await r.json()
@@ -344,7 +343,7 @@ class Fun(commands.Cog):
     @role_check(BigRLDRoleType.member, BigRLDRoleType.onlyfans, SmallRLDRoleType.member)
     @commands.cooldown(1, 300, commands.BucketType.guild)
     @commands.command(aliases=['echo'])
-    async def say(self, ctx: commands.Context, *, message: str):
+    async def say(self, ctx: Context, *, message: str):
         '''Brankobot will repeat your message input'''
         if not self._input_check(message):
             await ctx.send(random.choice(self._echo_responses))
@@ -357,7 +356,7 @@ class Fun(commands.Cog):
     @role_check()
     @commands.command(aliases=['chief', 'chieftain'], hidden=True)
     @commands.cooldown(1, 300, commands.BucketType.guild)
-    async def outside(self, ctx: commands.Context):
+    async def outside(self, ctx: Context):
         '''30% chance of responding with h7's outside mp3'''
         if random.ranrange(0, 101) > 70:
             await ctx.send(file=discord.File(str(Path('assets/audio/h7_outside.mp3'))))
@@ -368,7 +367,7 @@ class Fun(commands.Cog):
     @role_check()
     @commands.command(aliases=['uselessfact'])
     @commands.cooldown(1, 60, commands.BucketType.user)
-    async def fact(self, ctx: commands.Context):
+    async def fact(self, ctx: Context):
         '''Will send a random useless fact'''
         r = await (await self.bot.AIOHTTP_SESSION.get('https://uselessfacts.jsph.pl/random.json?language=en')).json()
         msg = r['text'].replace('`', '\'')
@@ -378,7 +377,7 @@ class Fun(commands.Cog):
     @role_check()
     @commands.command(aliases=['createpoll'])
     @commands.cooldown(1, 300, commands.BucketType.user)
-    async def poll(self, ctx: commands.Context, title: str, *answers: str):
+    async def poll(self, ctx: Context, title: str, *answers: str):
         '''Will create a strawpoll with possible [answers...] and [options...]'''
         payload = {
             'poll': {
@@ -397,7 +396,7 @@ class Fun(commands.Cog):
         aliases=['bday', 'anniversary'],
         usage='<birth_date (dd/mm/yyyy, dd-mm-yyyy or e.g 20 apr, 1889)>'
     )
-    async def birthday(self, ctx: commands.Context, birth_date: str):
+    async def birthday(self, ctx: Context, birth_date: str):
         '''Registers your birthday for brankobot to sell on the dark web (and to congratulate)'''
         birth_date = dateparser.parse(birth_date, ['%d/%m/%Y', '%d-%m-%Y', '%-d %b, %Y'])
         today = date.today()
@@ -445,7 +444,7 @@ class Fun(commands.Cog):
     
     @commands.cooldown(1, 300, commands.BucketType.user)
     @birthday.command('info', aliases=['daysleft', 'show'])
-    async def birthday_info(self, ctx: commands.Context):
+    async def birthday_info(self, ctx: Context):
         '''Shows stuff about your own birthday'''
         birthday: Birthday = await self.bot.get_birthday(ctx.author.id)
         if not birthday:
@@ -474,7 +473,7 @@ class Fun(commands.Cog):
         )
 
     @birthday.command('remove', aliases=['delete', 'del'])
-    async def birthday_remove(self, ctx: commands.Context, user: Union[discord.User, discord.Object]):
+    async def birthday_remove(self, ctx: Context, user: Union[discord.User, discord.Object]):
         '''Removes a birthday from database'''
         birthday: Birthday = await self.bot.get_birthday(user.id)
         if not birthday:
@@ -494,7 +493,7 @@ class Fun(commands.Cog):
 
     @commands.cooldown(1, 300, commands.BucketType.user)
     @birthday.command('average', aliases=['averageage'])
-    async def birthday_average(self, ctx: commands.Context):
+    async def birthday_average(self, ctx: Context):
         '''Shows the average age in current server'''
         cursor = await self.bot.CONN.cursor()
         try:
@@ -545,26 +544,26 @@ class Fun(commands.Cog):
         '''Base command for sending jokes'''
 
     @joke.command('dad')
-    async def joke_dad(self, ctx: commands.Context):
+    async def joke_dad(self, ctx: Context):
         '''Will send a random dad joke from [this website](https://icanhazdadjoke.com)'''
         r = await (await self.bot.AIOHTTP_SESSION.get('https://icanhazdadjoke.com', headers={'Accept': 'application/json'})).json()
         msg = r['joke']
         await ctx.send_response(msg)
 
     @joke.command('dark')
-    async def joke_dark(self, ctx: commands.Context):
+    async def joke_dark(self, ctx: Context):
         '''Will send a random dark joke from [this website](https://sv443.net/jokeapi)'''
         r = await (await self.bot.AIOHTTP_SESSION.get('https://sv443.net/jokeapi/v2/joke/Dark')).json()
         await ctx.send_response(self._get_joke(r))
 
     @joke.command('pun')
-    async def joke_pun(self, ctx: commands.Context):
+    async def joke_pun(self, ctx: Context):
         '''Will send a random pun joke from [this website](https://sv443.net/jokeapi)'''
         r = await (await self.bot.AIOHTTP_SESSION.get('https://sv443.net/jokeapi/v2/joke/Pun')).json()
         await ctx.send_response(self._get_joke(r))
 
     @joke.command('misc')
-    async def joke_misc(self, ctx: commands.Context):
+    async def joke_misc(self, ctx: Context):
         '''Will send a random miscellaneous joke from [this website](https://sv443.net/jokeapi)'''
         r = await (await self.bot.AIOHTTP_SESSION.get('https://sv443.net/jokeapi/v2/joke/Miscellaneous')).json()
         await ctx.send_response(self._get_joke(r))
