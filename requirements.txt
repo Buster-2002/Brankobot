@@ -1,7 +1,6 @@
 matplotlib
 aiohttp
 humanize
-pythonping
 dateparser
 iso639
 aiosqlite
