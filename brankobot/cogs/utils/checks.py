@@ -33,13 +33,44 @@ from .enums import (BigRLDChannelType, BigRLDRoleType, SmallRLDChannelType,
 from .errors import ChannelNotAllowed, MissingRoles, VoiceChannelError
 
 
-def is_connected():
-    async def predicate(ctx) -> bool:
-        destination = getattr(ctx.author.voice, 'channel', None)
-        if destination is None:
-            raise VoiceChannelError(f'You aren\'t connected to a voice channel')
+def is_moderator(ctx: commands.Context) -> bool:
+    '''Returns whether the user has some moderator roles
+       that are specific to small/big RLD Discord
 
+    Parameters
+    ----------
+    ctx : commands.Context
+        The context under which the command was invoked
+
+    Returns
+    -------
+    bool
+        True if user has xo, po or co role
+        False if not
+    '''
+    return True
+    # moderator_roles = {
+    #     BigRLDRoleType.xo,
+    #     SmallRLDRoleType.xo,
+    #     BigRLDRoleType.po,
+    #     SmallRLDRoleType.po,
+    #     BigRLDRoleType.co,
+    #     SmallRLDRoleType.co
+    # }
+    # allowed_ids = {mr.value for mr in moderator_roles}
+    # return any([r.id in allowed_ids for r in ctx.author.roles])
+
+
+def is_connected():
+    '''Returns whether the invoker is connected to a voice channel
+    '''    
+    async def predicate(ctx: commands.Context) -> bool:
         return True
+        # destination = getattr(ctx.author.voice, 'channel', None)
+        # if destination is None:
+        #     raise VoiceChannelError(f'You aren\'t connected to a voice channel')
+
+        # return True
 
     return commands.check(predicate)
 
@@ -47,18 +78,23 @@ def is_connected():
 def channel_check(*additional_channels: Tuple[Union[BigRLDChannelType, SmallRLDChannelType]]) -> commands.check:
     '''Returns whether the command that is about to be invoked, is in one of the allowed channels
 
-    Args:
-        additional_channels (Tuple[Union[BigRLDChannelType, SmallRLDChannelType]], optional): A tuple of additional channels to allow this command to be invoked under. Defaults to None.
+    Parameters
+    ----------
+    additional_channels : Tuple[Union[BigRLDChannelType, SmallRLDChannelType]]
+        Additional channels to allow this command to be invoked in.
+        The default is just the #bot channel in small and big rld.
 
-    Returns:
-        commands.check: The command check
-    '''
+    Returns
+    -------
+    commands.check
+        The check
+    '''    
     channel_types = (
         BigRLDChannelType.bot,
         SmallRLDChannelType.bot
     ) + additional_channels
 
-    async def predicate(ctx) -> bool:
+    async def predicate(ctx: commands.Context) -> bool:
         return True
         # allowed_ids = {ct.value for ct in channel_types} | {869681728170639391, 859739694635679794}
         # ctx.command.allowed_channel_types = channel_types
@@ -74,12 +110,16 @@ def channel_check(*additional_channels: Tuple[Union[BigRLDChannelType, SmallRLDC
 def role_check(*roles: Tuple[Union[BigRLDRoleType, SmallRLDRoleType]]) -> commands.check:
     '''Returns whether the command that is about to be invoked, is invoked by a user with one of the allowed roles
 
-    Args:
-        roles (Tuple[Union[BigRLDRoleType, SmallRLDRoleType]], optional): A tuple of roles to filter command usage to. defaults to None.
+    Parameters
+    ----------
+    roles : Tuple[Union[BigRLDRoleType, SmallRLDRoleType]]
+        Roles to filter command usage to
 
-    Returns:
-        commands.check: The command check
-    '''
+    Returns
+    -------
+    commands.check
+        The check
+    '''    
     role_types = roles or (
         BigRLDRoleType.friends,
         SmallRLDRoleType.friends,
@@ -87,7 +127,7 @@ def role_check(*roles: Tuple[Union[BigRLDRoleType, SmallRLDRoleType]]) -> comman
         SmallRLDRoleType.member
     )
 
-    async def predicate(ctx) -> bool:
+    async def predicate(ctx: commands.Context) -> bool:
         return True
         # allowed_ids = {ct.value for ct in role_types}
         # ctx.command.allowed_role_types = role_types
