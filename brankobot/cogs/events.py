@@ -121,8 +121,10 @@ class Events(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        '''
-        Called when the client is done preparing the data received from Discord
+        '''Called when the client is done preparing the data received from Discord
+        
+        Actions
+        -------
         - create bot.AIOHTTP_SESSION
         - load tanks in bot.TANKS
         - load achievements in bot.ACHIEVEMENTS
@@ -306,8 +308,10 @@ class Events(commands.Cog):
 
     @commands.Cog.listener()
     async def on_reminder_due(self, reminder: Reminder):
-        '''
-        Called when a reminders timer finished
+        '''Called when a reminders timer finished
+
+        Actions
+        -------
         - send a message in the channel where the reminder was created,
           replying to the message that created it
         - delete reminder from database
@@ -346,8 +350,10 @@ class Events(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        '''
-        Called for every message send that the bot can see.
+        '''Called for every message send that the bot can see.
+
+        Actions
+        -------
         - react if mentioned
         - send custom command content if its found, and increment its usage by 1
         - send message content if it is the same 4x in a row
@@ -427,8 +433,10 @@ class Events(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
-        '''
-        Called when a member joins a guild.
+        '''Called when a member joins a guild.
+
+        Actions
+        -------
         - Brankobot will send a welcoming message if
           that server is small or big RLD Discord.
         '''
@@ -450,8 +458,10 @@ class Events(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
-        '''
-        Called when a member leaves a guild.
+        '''Called when a member leaves a guild.
+
+        Actions
+        -------
         - Bot will remove any reminders/birthdays
           associated with this user in this guild.
         '''
@@ -491,8 +501,10 @@ class Events(commands.Cog):
 
     @commands.Cog.listener()
     async def on_command(self, ctx: Context):
-        '''
-        Called for every attempted command invoke
+        '''Called for every attempted command invoke
+
+        Actions
+        -------
         - Adds an invoke time for a command to calculate
           time it took to respond
         '''
@@ -502,6 +514,9 @@ class Events(commands.Cog):
     @commands.Cog.listener()
     async def on_command_completion(self, ctx: Context):
         '''Called when a command successfully finished
+
+        Actions
+        -------
         - Bot will log command usage to logging file
         '''
         logger = logging.getLogger('brankobot')
@@ -510,8 +525,10 @@ class Events(commands.Cog):
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx: Context, error: Exception):
-        '''
-        Called for every error raised inside of a command
+        '''Called for every error raised inside of a command
+
+        Actions
+        -------
         - Handles error by sending message with information'''
         if ctx.command:
             ctx.command.reset_cooldown(ctx)
