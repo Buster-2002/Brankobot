@@ -28,19 +28,25 @@ from datetime import date, datetime
 from io import BytesIO
 from pathlib import Path
 from textwrap import dedent, wrap
+from typing import Union
 
 import dateparser
 import discord
 from discord.ext import commands
 from discord.utils import escape_markdown, format_dt, remove_markdown
-from humanize import ordinal
+from humanize import naturaldelta, ordinal
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageSequence
+from humanize.number import intcomma
+from humanize.time import precisedelta
 
-from .utils.checks import channel_check, role_check
+from .utils.checks import channel_check, is_moderator, role_check
 from .utils.enums import (BigRLDChannelType, BigRLDRoleType, Emote, GuildType,
                           SmallRLDChannelType, SmallRLDRoleType)
+from .utils.errors import (BirthdayAlreadyRegistered, BirthdayDoesntExist,
+                           NoBirthdays, NotAModerator)
 from .utils.gif import save_transparent_gif
-from .utils.helpers import Loading, average, confirm
+from .utils.helpers import average, get_next_birthday
+from .utils.models import Birthday
 
 
 # -- Cog -- #
@@ -222,7 +228,7 @@ class Fun(commands.Cog):
     @commands.command(aliases=['makememe', 'gifcaption', 'captiongif'])
     async def caption(self, ctx: commands.Context, link: str, *, text: str):
         '''Will caption your <link> with <text>'''
-        async with Loading(ctx, initial_message='Downloading') as loader:
+        async with ctx.loading(initial_message='Downloading') as loader:
             b = await self._get_bytes(link)
             await loader.update('Generating')
             _file, ft = await self.bot.loop.run_in_executor(
@@ -329,9 +335,10 @@ class Fun(commands.Cog):
                     url=data['postLink']
                 )
             else:
-                await ctx.send('Can\'t send NSFW stuff')
+                await ctx.reply('Can\'t send NSFW stuff', delete_after=60, mention_author=False)
+
         except KeyError:
-            await ctx.send(f'Couldn\'t find subreddit {subreddit}')
+            await ctx.reply(f'Couldn\'t find subreddit {subreddit}', delete_after=60, mention_author=False)
 
 
     @role_check(BigRLDRoleType.member, BigRLDRoleType.onlyfans, SmallRLDRoleType.member)
@@ -354,6 +361,8 @@ class Fun(commands.Cog):
         '''30% chance of responding with h7's outside mp3'''
         if random.ranrange(0, 101) > 70:
             await ctx.send(file=discord.File(str(Path('assets/audio/h7_outside.mp3'))))
+        else:
+            await ctx.message.add_reaction(Emote.shush)
 
 
     @role_check()
@@ -382,7 +391,7 @@ class Fun(commands.Cog):
 
 
     @role_check(BigRLDRoleType.member, SmallRLDRoleType.member)
-    # @commands.cooldown(1, 300, commands.BucketType.user)
+    @commands.cooldown(1, 300, commands.BucketType.user)
     @commands.group(
         invoke_without_command=True,
         aliases=['bday', 'anniversary'],
@@ -396,33 +405,12 @@ class Fun(commands.Cog):
         cursor = await self.bot.CONN.cursor()
         try:
             # Check if user isn't already in database
-            select_birthday_query = dedent('''
-                SELECT *
-                FROM birthdays
-                WHERE user_id = ?;
-            '''.strip())
+            birthday = await self.bot.get_birthday(ctx.author.id)
+            if birthday is not None:
+                raise BirthdayAlreadyRegistered(birthday)
 
-            result = await cursor.execute(
-                select_birthday_query,
-                (ctx.author.id,)
-            )
-            row = await result.fetchone()
-
-            # if row:
-            #     year, month, day = map(int, row[3].split('-'))
-            #     raise AlreadyRegistered(
-            #         date(year=year, month=month, day=day),
-            #         self.bot.get_guild(row[2])
-            #     )
-
-            # else:
             # Since a user can only add his birthday once, we ask to confirm
-            confirmed = await confirm(
-                ctx,
-                f'you can only add your birthday once, is {format_dt(birth_date, "D")} right?'
-            )
-
-            if not confirmed:
+            if not await ctx.confirm(f'you can only add your birthday once, is {format_dt(birth_date, "D")} right?'):
                 return
 
             # Add birthday to DB
@@ -445,25 +433,69 @@ class Fun(commands.Cog):
                 )
             )
             await self.bot.CONN.commit()
-
-            # If birthday has already been this year,
-            # we take the next year for our message
-            year = today.year
-            if today.month >= birth_date.month and today.day > birth_date.day:
-                year += 1
-
-            next_birthday = datetime(year, birth_date.month, birth_date.day)
+            next_birthday = get_next_birthday(birth_date)
             await ctx.send_response(
-                f'ok {Emote.monocle}, i will maybe wish you a happy **{ordinal(year - birth_date.year)}** birthday {format_dt(next_birthday, "R")}',
+                f'ok {Emote.monocle}, i will maybe wish you a happy **{ordinal(next_birthday.year - birth_date.year)}** birthday {format_dt(next_birthday, "R")}',
                 title='Birthday Added',
                 show_invoke_speed=False
             )
 
         finally:
             await cursor.close()
+    
+    @commands.cooldown(1, 300, commands.BucketType.user)
+    @birthday.command('info', aliases=['daysleft', 'show'])
+    async def birthday_info(self, ctx: commands.Context):
+        '''Shows stuff about your own birthday'''
+        birthday: Birthday = await self.bot.get_birthday(ctx.author.id)
+        if not birthday:
+            raise BirthdayDoesntExist(ctx.author)
 
-    @birthday.command('average')
+        next_birthday = get_next_birthday(birthday.date)
+        now = datetime.now()
+        age = now - birthday.date
+        msg = dedent(f'''
+            **Current age:** {precisedelta(age)} old
+
+            Your **{ordinal(next_birthday.year - birthday.date.year)}** birthday will be in {precisedelta(now - next_birthday, minimum_unit='minutes')} on {format_dt(next_birthday, 'F')}
+        ''')
+        fields = [
+            ('Months', intcomma(round((now.year - birthday.date.year) * 12 + now.month - birthday.date.month))),
+            ('Weeks', intcomma(round(age.days / 7))),
+            ('Days', intcomma(age.days)),
+            ('Hours', intcomma(round(age.total_seconds() / (60 * 60)))),
+            ('Minutes', intcomma(round(age.total_seconds() / 60))),
+            ('Seconds', intcomma(round(age.total_seconds())))
+        ]
+        await ctx.send_response(
+            msg,
+            fields=fields,
+            title='Birthday Info'
+        )
+
+    @birthday.command('remove', aliases=['delete', 'del'])
+    async def birthday_remove(self, ctx: commands.Context, user: Union[discord.User, discord.Object]):
+        '''Removes a birthday from database'''
+        birthday: Birthday = await self.bot.get_birthday(user.id)
+        if not birthday:
+            raise BirthdayDoesntExist(user)
+
+        if not is_moderator(ctx):
+            raise NotAModerator()
+
+        if not await ctx.confirm('are you sure?'):
+            return
+
+        await self.bot.delete_birthday(user.id)
+        await ctx.send_response(
+            f'Removed birthday {format_dt(birthday.date, "d")} belonging to {self.bot.get_user(birthday.user_id)}',
+            title='Birthday Removed'
+        )
+
+    @commands.cooldown(1, 300, commands.BucketType.user)
+    @birthday.command('average', aliases=['averageage'])
     async def birthday_average(self, ctx: commands.Context):
+        '''Shows the average age in current server'''
         cursor = await self.bot.CONN.cursor()
         try:
             select_birthdays_query = dedent('''
@@ -471,26 +503,37 @@ class Fun(commands.Cog):
                 FROM birthdays
                 WHERE server_id = ?;
             '''.strip())
+
             result = await cursor.execute(
                 select_birthdays_query,
                 (ctx.guild.id,)
             )
             rows = await result.fetchall()
-            today = date.today()
-            average_age = average([
-                today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
-                for birth_date in [
+
+            if rows:
+                today = date.today()
+                dates = [
                     date(year=year, month=month, day=day)
                     for year, month, day in [
                         map(int, row[3].split('-'))
                         for row in rows
                     ]
                 ]
-            ])
-            await ctx.send_response(
-                f"The average age in **{ctx.guild.name}** is {average_age:.2f} years",
-                title='Average Age'
-            )
+                average_age = average([
+                    today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
+                    for birth_date in dates
+                ])
+                msg = dedent(f'''
+                    The average age in **{ctx.guild.name}** is {average_age:.2f} years.
+                    The oldest person is {naturaldelta(datetime.now() - max(dates))} old and the youngest is {naturaldelta(datetime.now() - min(dates))} old.
+                ''')
+                await ctx.send_response(
+                    msg,
+                    title='Average Age'
+                )
+
+            else:
+                raise NoBirthdays()
 
         finally:
             await cursor.close()
