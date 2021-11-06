@@ -96,3 +96,4 @@ You are allowed to use this code, however it is purely designed for the two afor
 ### Mentions
 * [WotReplay](https://pypi.org/project/wotreplay/) - Used their way of getting json data from replay files.
 * [herhor.net](https://herhor.net/wot/) - Use of their tank and mark images which imitate in game look.
+* [EvieePy](https://github.com/EvieePy) - Use of their basic music bot gist [code](https://gist.github.com/EvieePy/ab667b74e9758433b3eb806c53a19f34)
