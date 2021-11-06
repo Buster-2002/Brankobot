@@ -521,7 +521,7 @@ class Events(commands.Cog):
             exc = 'No people have registered their birthday in this server'
 
         elif isinstance(error, NotAModerator):
-            exc = 'Only moderators can remove birthdays from the database'
+            exc = 'Only moderators can remove birthdays from the database to prevent spamming'
 
         elif isinstance(error, BirthdayAlreadyRegistered):
             exc = f'You have already registered your birthday ({format_dt(error.birthday.date)}) in {self.bot.get_guild(error.birthday.server_id)}'

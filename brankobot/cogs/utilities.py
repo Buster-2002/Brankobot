@@ -36,14 +36,13 @@ from discord.ext.menus.views import ViewMenuPages
 from discord.utils import escape_markdown, format_dt
 from youtube_dl.YoutubeDL import DownloadError, YoutubeDL
 
-from .utils.checks import channel_check, role_check
+from .utils.checks import channel_check, is_moderator, role_check
 from .utils.converters import CommandNameCheck, ReminderConverter
-from .utils.enums import BigRLDRoleType, Emote, SmallRLDRoleType
+from .utils.enums import BigRLDRoleType, SmallRLDRoleType
 from .utils.errors import (CommandDoesntExist, CommandExists,
                            InvalidCommandContent, NoCustomCommands,
                            NoReminders, NotCommandOwner, NotReminderOwner,
                            ReminderDoesntExist)
-from .utils.helpers import confirm, Loading
 from .utils.models import CustomCommand, Reminder
 from .utils.paginators import CustomCommandsPaginator, ReminderPaginator
 
@@ -56,33 +55,11 @@ class Utilities(commands.Cog):
         self.bot = bot
 
 
-    @staticmethod
-    def _is_moderator(roles: List[discord.Role]) -> bool:
-        '''Checks whether roles contain any mod roles
-
-        Args:
-            roles (List[discord.Role]): The list of roles to check for mod roles
-
-        Returns:
-            bool: True if the roles contain mod roles, False if they don't
-        '''
-        moderator_roles = {
-            BigRLDRoleType.xo,
-            SmallRLDRoleType.xo,
-            BigRLDRoleType.po,
-            SmallRLDRoleType.po,
-            BigRLDRoleType.co,
-            SmallRLDRoleType.co
-        }
-        allowed_ids = {mr.value for mr in moderator_roles}
-        return any([r.id in allowed_ids for r in roles])
-
-
     @commands.cooldown(2, 60, commands.BucketType.user)
     @commands.command(aliases=['download', 'downloadmedia', 'uploadmedia'], usage='<link (works with [these](https://ytdl-org.github.io/youtube-dl/supportedsites.html) platform links)>')
     async def upload(self, ctx: commands.Context, link: str):
         '''Upload media like mp4/mp3 from link'''
-        async with Loading(ctx, initial_message='Downloading') as loader:
+        async with ctx.loading(initial_message='Downloading') as loader:
             temp_dir = TemporaryDirectory()
             ytdl_options = {
                 'quiet': True,
@@ -101,7 +78,7 @@ class Utilities(commands.Cog):
                     )
                 )
             except DownloadError as e:
-                await ctx.send(f'Couldn\'t download: {e.msg} (file too big?)', delete_after=60)
+                await ctx.reply(f'Couldn\'t download: {e} (file too big?)', delete_after=60, mention_author=False)
             else:
                 await loader.update('Uploading')
                 ext = meta["ext"]
@@ -186,6 +163,7 @@ class Utilities(commands.Cog):
                 args
             )
             id = await result.fetchone()
+
             args = id + args
             reminder = Reminder(*args)
             msg = f'okay, {format_dt(reminder.ends_at, "R")}, I will remind you'
@@ -225,6 +203,7 @@ class Utilities(commands.Cog):
                     ), clear_reactions_after=True
                 )
                 await pages.start(ctx)
+
             else:
                 raise NoReminders()
 
@@ -234,68 +213,51 @@ class Utilities(commands.Cog):
     @_reminder.command('remove', aliases=['delete', 'del'])
     async def _reminder_remove(self, ctx: commands.Context, id: int):
         '''Removes your reminder by its ID (see reminder list)'''
-        cursor = await self.bot.CONN.cursor()
-        try:
-            reminder_task = self.bot.REMINDER_TASKS.get(id)
-            if reminder_task is None:
-                raise ReminderDoesntExist(id)
+        reminder_task = self.bot.REMINDER_TASKS.get(id)
+        if reminder_task is None:
+            raise ReminderDoesntExist(id)
 
-            msg = 'are you sure you want to remove this reminder?'
-            reminder: Reminder = reminder_task['reminder']
-            # Moderators can delete any reminder
-            if self._is_moderator(ctx.author.roles):
-                msg = msg.rstrip('?')
-                msg += f' belonging to {self.bot.get_user(reminder.creator_id)}?'
-            else:
-                if reminder.creator.id != ctx.author.id:
-                    raise NotReminderOwner(reminder)
+        msg = 'are you sure you want to remove this reminder?'
+        reminder: Reminder = reminder_task['reminder']
+        # Moderators can delete any reminder
+        if is_moderator(ctx):
+            msg = msg.rstrip('?')
+            msg += f' belonging to {self.bot.get_user(reminder.creator_id)}?'
+        else:
+            if reminder.creator.id != ctx.author.id:
+                raise NotReminderOwner(reminder)
 
-            confirmed = await confirm(ctx, msg)
-            if not confirmed:
-                return
+        if not await ctx.confirm(msg):
+            return
 
-            with suppress(Exception):
-                task = reminder_task['task']
-                task.cancel()
-
-            await self.bot.delete_reminder(reminder)
-            await ctx.send_response(
-                f'removed reminder with ID `{id}`',
-                title='Reminder removed'
-            )
-
-        finally:
-            await cursor.close()
+        await self.bot.delete_reminder(reminder)
+        await ctx.send_response(
+            f'Removed reminder with ID `{id}`',
+            title='Reminder removed'
+        )
 
     @_reminder.command('clear')
     async def _reminder_clear(self, ctx: commands.Context):
         '''Removes all your reminders'''
         cursor = await self.bot.CONN.cursor()
         try:
-            delete_reminders_query = dedent('''
-                DELETE
+            select_reminders_query = dedent('''
+                SELECT id
                 FROM reminders
-                WHERE creator_id = ?
-                RETURNING id;
+                WHERE creator_id = ?;
             '''.strip())
-
+            
             result = await cursor.execute(
-                delete_reminders_query,
+                select_reminders_query,
                 (ctx.author.id,)
             )
             rows = await result.fetchall()
 
             if rows:
-                for reminder_id in rows:
-                    with suppress(Exception):
-                        reminder_task = self.bot.REMINDER_TASKS[reminder_id]['task']
-                        reminder_task.cancel()
-                        self.bot.REMINDER_TASKS.pop(reminder_id)
+                reminders = [Reminder(*r) for r in rows]
+                for reminder in reminders:
+                    await self.bot.delete_reminder(reminder)
 
-                await ctx.send_response(
-                    f'Cleared {len(rows)} reminders',
-                    title='Cleared Reminders'
-                )
             else:
                 raise NoReminders()
 
@@ -342,6 +304,7 @@ class Utilities(commands.Cog):
                 )
             )
             await self.bot.CONN.commit()
+
             await ctx.send_response(
                 f'okay, you can now use >{command_name}',
                 title='Command Created'
@@ -362,15 +325,14 @@ class Utilities(commands.Cog):
 
             msg = 'are you sure you want to remove this command?'
             # Moderators can delete any custom command
-            if not self._is_moderator(ctx.author.roles):
+            if is_moderator(ctx):
                 msg = msg.rstrip('?')
                 msg += f' belonging to {self.bot.get_user(command.creator_id)}?'
             else:
                 if command.creator.id != ctx.author.id:
                     raise NotCommandOwner(command)
 
-            confirmed = await confirm(ctx, msg)
-            if not confirmed:
+            if not await ctx.confirm(msg):
                 return
 
             delete_command_query = dedent('''
@@ -384,6 +346,7 @@ class Utilities(commands.Cog):
                 (command.id,)
             )
             await self.bot.CONN.commit()
+
             await ctx.send_response(
                 f'removed command with name `{command_name}`',
                 title='Command Removed'
@@ -420,6 +383,7 @@ class Utilities(commands.Cog):
                 )
             )
             await self.bot.CONN.commit()
+
             await ctx.send_response(
                 f'np, renamed `{command_name}` to `{new_command_name}`',
                 title='Command Renamed'
@@ -463,6 +427,7 @@ class Utilities(commands.Cog):
 
             result = await cursor.execute(select_commands_query)
             rows = await result.fetchall()
+
             custom_commands = [CustomCommand(*r) for r in rows]
             close_matches = get_close_matches(
                 query,
