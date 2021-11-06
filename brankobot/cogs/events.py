@@ -47,7 +47,7 @@ from main import __version__ as botversion
 from .utils.enums import (BigRLDChannelType, Emote, GuildType,
                           SmallRLDChannelType, try_enum)
 from .utils.errors import *
-from .utils.models import Achievement, Reminder, Tank
+from .utils.models import Achievement, Birthday, Reminder, Tank
 
 
 # -- Cog -- #
@@ -240,6 +240,7 @@ class Events(commands.Cog):
                     SELECT *
                     FROM reminders
                 '''.strip())
+
                 result = await cursor.execute(select_reminder_query)
                 rows = await result.fetchall()
 
@@ -278,26 +279,26 @@ class Events(commands.Cog):
             result = await cursor.execute(select_birthdays_query)
             rows = await result.fetchall()
 
-            for row in rows:
-                year, month, day = map(int, row[3].split('-'))
-                birth_date = datetime.date(year=year, month=month, day=day)
-                today = datetime.date.today()
+            if rows:
+                birthdays = [Birthday(*r) for r in rows]
+                for birthday in birthdays:
+                    today = datetime.date.today()
 
-                # Only proceed if today is actually the day...
-                if (today.month, today.day) == (birth_date.month, birth_date.day):
-                    server_id = row[2]
-                    channel_id = None
+                    # Only proceed if today is actually the day...
+                    if (today.month, today.day) == (birthday.date.month, birthday.date.day):
+                        server_id = birthday.server_id
+                        channel_id = None
 
-                    if server_id is GuildType.big_rld.value:
-                        channel_id = BigRLDChannelType.classified.value
-                    elif server_id is GuildType.small_rld.value:
-                        channel_id = SmallRLDChannelType.classified.value
+                        if server_id is GuildType.big_rld.value:
+                            channel_id = BigRLDChannelType.classified.value
+                        elif server_id is GuildType.small_rld.value:
+                            channel_id = SmallRLDChannelType.classified.value
 
-                    if channel_id:                    
-                        channel = self.bot.get_channel(channel_id)
-                        user = self.bot.get_user(row[1])
-                        await channel.send(f'{Emote.tada} it\'s {user.mention}\'s **{ordinal(today.year - birth_date.year)}** birthday {Emote.cake}!')
-                        await channel.send(str(Emote.feels_birthday_man))
+                        if channel_id:
+                            channel = self.bot.get_channel(channel_id)
+                            user = self.bot.get_user(birthday.user_id)
+                            await channel.send(f'{Emote.tada} it\'s {user.mention}\'s **{ordinal(today.year - birthday.date.year)}** birthday {Emote.cake}!')
+                            await channel.send(str(Emote.feels_birthday_man))
 
         finally:
             await cursor.close()
@@ -312,7 +313,6 @@ class Events(commands.Cog):
         - delete reminder from database
         '''
         cursor = await self.bot.CONN.cursor()
-
         try:
             channel = self.bot.get_channel(reminder.channel.id)
             # for some reason MessageReference has no classmethod for message links
@@ -424,7 +424,8 @@ class Events(commands.Cog):
     async def on_member_join(self, member: discord.Member):
         '''
         Called when a member joins a guild.
-        - send a welcoming message if that server is small or big RLD Discord.
+        - Brankobot will send a welcoming message if
+          that server is small or big RLD Discord.
         '''
         guild = member.guild
         channel_id = None
@@ -441,10 +442,52 @@ class Events(commands.Cog):
 
 
     @commands.Cog.listener()
+    async def on_member_remove(self, member: discord.Member):
+        '''
+        Called when a member leaves a guild.
+        - Bot will remove any reminders/birthdays
+          associated with this user in this guild.
+        '''
+        logger = logging.getLogger('brankobot')
+        logger.info(f'{member} left {member.guild}; removing reminders/birthday')
+        text_channels = {tc.id for tc in member.guild.text_channels}
+
+        cursor = await self.bot.CONN.cursor()
+        try:
+            # Removing reminders
+            select_reminders_query = dedent('''
+                SELECT *
+                FROM reminders
+                WHERE creator_id = ?;
+            '''.strip())
+
+            result = await cursor.execute(
+                select_reminders_query,
+                (member.id,)
+            )
+            rows = await result.fetchall()
+
+            if rows:
+                reminders = [Reminder(*r) for r in rows]
+                for reminder in reminders:
+                    if reminder.channel_id in text_channels:
+                        await self.bot.delete_reminder(reminder)
+
+            # Removing birthday
+            birthday: Birthday = await self.bot.get_birthday(member.id)
+            if member.guild.id == birthday.server_id:
+                await self.bot.delete_birthday(member.id)
+
+        finally:
+            await cursor.close()
+
+
+    @commands.Cog.listener()
     async def on_command(self, ctx: commands.Context):
         '''
         Called for every attempted command invoke
-        - Adds an invoke time for a command to calculate time it took to respond
+        - Adds an invoke time for a command to calculate
+          time it took to respond
         '''
         ctx.command.invoke_time = time.perf_counter()
 
@@ -452,7 +495,7 @@ class Events(commands.Cog):
     @commands.Cog.listener()
     async def on_command_completion(self, ctx: commands.Context):
         '''Called when a command successfully finished
-        - Bot will log command usage to file
+        - Bot will log command usage to logging file
         '''
         logger = logging.getLogger('brankobot')
         logger.info(f'"{ctx.author}" used "{ctx.command.qualified_name}" in #{ctx.channel}')
@@ -463,11 +506,25 @@ class Events(commands.Cog):
         '''
         Called for every error raised inside of a command
         - Handles error by sending message with information'''
+        raise error
         if ctx.command:
             ctx.command.reset_cooldown(ctx)
 
         if isinstance(error, commands.CommandNotFound):
             return
+
+        # birthday errors
+        elif isinstance(error, BirthdayDoesntExist):
+            exc = f'{error.user} has no birthday registered'
+
+        elif isinstance(error, NoBirthdays):
+            exc = 'No people have registered their birthday in this server'
+
+        elif isinstance(error, NotAModerator):
+            exc = 'Only moderators can remove birthdays from the database'
+
+        elif isinstance(error, BirthdayAlreadyRegistered):
+            exc = f'You have already registered your birthday ({format_dt(error.birthday.date)}) in {self.bot.get_guild(error.birthday.server_id)}'
 
         # music errors
         elif isinstance(error, VoiceChannelError):
@@ -531,7 +588,7 @@ class Events(commands.Cog):
         # Other errors
         elif isinstance(error, aiosqlite.Error):
             await self.bot.CONN.rollback()
-            await ctx.reply(f'Database had an error (mention buster): {error}', mention_author=False)
+            await ctx.reply(f'Database had an error: {error} (<@764584777642672160>)', mention_author=False)
             raise error
 
         elif isinstance(error, ReplayError):
@@ -580,15 +637,12 @@ class Events(commands.Cog):
 
         elif isinstance(error, commands.NotOwner):
             exc = 'You can\'t use this command'
-        
-        elif isinstance(error, AlreadyRegistered):
-            exc = f'You are already registered with your birthday on {format_dt(error.date, "d")} in {error.guild}'
 
         elif isinstance(error, commands.CommandOnCooldown):
             exc = f'The command is on cooldown ({error.type.name} scope). try again in {error.retry_after:.0f}s :joy:'
 
         elif isinstance(error, commands.MissingRequiredArgument):
-            exc = f'You are missing required argument(s): {error.param}'
+            exc = f'You are missing a required argument: {error.param}'
 
         else:
             await ctx.reply(f'Something unexpected happened (mention buster if issue persists): {str(error)}', mention_author=False)
