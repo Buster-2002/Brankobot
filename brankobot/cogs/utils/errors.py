@@ -31,9 +31,15 @@ import discord
 from discord.ext import commands
 
 from .enums import Region
-from .models import CustomCommand, Reminder
+from .models import Birthday, CustomCommand, Reminder
 
 __all__ = (
+    # Birthday errors
+    'BirthdayDoesntExist',
+    'NoBirthdays',
+    'NotAModerator',
+    'BirthdayAlreadyRegistered',
+
     # Music errors
     'VoiceChannelError',
     'NotPlaying',
@@ -69,11 +75,30 @@ __all__ = (
     # Other errors
     'ChannelNotAllowed',
     'MissingRoles',
-    'ApiError',
-    'AlreadyRegistered'
+    'ApiError'
 )
 
 
+# Birthday errors
+class BirthdayError(commands.CommandError):
+    pass
+
+class BirthdayDoesntExist(BirthdayError):
+    def __init__(self, user: discord.User):
+        self.user = user
+
+class NoBirthdays(BirthdayError):
+    pass
+
+class NotAModerator(BirthdayError):
+    pass
+
+class BirthdayAlreadyRegistered(commands.CommandError):
+    def __init__(self, birthday: Birthday):
+        self.birthday = birthday
+
+
+# Music errors
 class MusicError(commands.CommandError):
     pass
 
@@ -199,8 +224,3 @@ class ChannelNotAllowed(commands.CommandError):
 class MissingRoles(commands.CommandError):
     def __init__(self, allowed_ids: Set[int]):
         self.allowed_ids = allowed_ids
-
-class AlreadyRegistered(commands.CommandError):
-    def __init__(self, date: datetime, guild: discord.Guild):
-        self.date = date
-        self.guild = guild
