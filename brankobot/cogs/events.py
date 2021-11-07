@@ -56,8 +56,9 @@ class Events(commands.Cog):
     def __init__(self, bot):
         self.bot: Bot = bot
         self.counter = 0
+        # Custom commands can be used 10 times every 60 seconds on a per guild basis
         self.custom_command_cooldown = commands.CooldownMapping.from_cooldown(
-            rate=10, # Custom commands can be used 10 times every 60 seconds on a per guild basis
+            rate=10,
             per=60,
             type=commands.BucketType.guild
         )
@@ -67,7 +68,7 @@ class Events(commands.Cog):
             'PUINK\n!!!': 15,
             'No u': 15,
             'shut up {}': 15,
-            f'{Emote.shush}': 15,
+            Emote.shush.value: 15,
             'i did not ask tho': 15,
 
             'please be quiet in the back of the bus': 10,
@@ -78,24 +79,29 @@ class Events(commands.Cog):
             'https://cdn.discordapp.com/attachments/724542301543727134/737432024373133312/04264c87b5ff12243395b867730e11e940c6f6efv2_00.png': 5,
         }
         self._join_responses = {
+            # Common
             'who you {}': 16,
             '{} who you be': 16,
             'new guy {} who dis': 16,
 
+            # Uncommon
             f'who dis one {{}} {Emote.eyes}': 12,
             '{} new phon who dis': 12,
             'hi {}': 12,
             'shalom {}': 12,
+            'siema pl {}': 12,
 
-            'siema pl {}': 8,
+            # Rare
             '{}; do you sexually abuse busses too': 8,
             'ah, {}, a new one to ride my bus': 8,
             f'{{}} {Emote.bus} WROOM WROOM!': 8,
             'my bus is open, please enter {}': 8,
-            f'would you like to see my \'bus\' {{}} {Emote.eyes}': 8,
 
+            # Epic
             f'{Emote.oncoming_bus} is the last thing they see {{}}': 4,
+            f'would you like to see my \'bus\' {{}} {Emote.eyes}': 4,
 
+            # Legendary
             'hi {}!\ntoo slow <@!331395741585244162>': 2
         }
         self._reminder_replies = (
@@ -116,14 +122,15 @@ class Events(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         '''Called when the client is done preparing the data received from Discord
-        
+
         Actions
         -------
-        * create bot.AIOHTTP_SESSION
-        * load tanks in bot.TANKS
-        * load achievements in bot.ACHIEVEMENTS
-        * create bot.CONN and check if reminders and custom_commands tables are in place
+        * create `bot.AIOHTTP_SESSION`
+        * load tanks in `bot.TANKS`
+        * load achievements in `bot.ACHIEVEMENTS`
+        * create `bot.CONN` and check if tables are in place
         * load reminders from database and start their timer
+        * start birthday task
         '''
         if self.bot.BEEN_READY is False:
             # Load variables that require async func
@@ -260,11 +267,12 @@ class Events(commands.Cog):
                 await cursor.close()
 
 
-    # Check for birthdays every day at 07:00 UTC which is 08:00 CET
     @tasks.loop(time=datetime.time(hour=7))
     async def check_birthdays(self):
+        '''Checks for birthdays every day at 07:00 UTC / 08:00 CET / 09:00 CEST'''
         logger = logging.getLogger('brankobot')
         logger.info('Checking for birthdays...')
+
         cursor = await self.bot.CONN.cursor()
         try:
             select_birthdays_query = dedent('''
