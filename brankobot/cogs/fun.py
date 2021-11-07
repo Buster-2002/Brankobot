@@ -48,7 +48,6 @@ from .utils.helpers import average, get_next_birthday
 from .utils.models import Birthday
 
 
-# -- Cog -- #
 class Fun(commands.Cog):
     '''All the commands without a real purpose'''
 

@@ -51,13 +51,13 @@ class Misc(commands.Cog):
 
     @commands.has_permissions(manage_messages=True)
     @commands.command()
-    async def cleanup(self, ctx: Context, search: int = 100):
+    async def cleanup(self, ctx: Context, limit: int = 100):
         '''Deletes bot messages in current channel'''
         prefixes = tuple(await self.bot.get_prefix(ctx.message))
         def check(message: discord.Message):
             return message.author == self.bot.user or message.content.startswith(prefixes)
 
-        deleted = await ctx.channel.purge(limit=search, check=check, before=ctx.message)
+        deleted = await ctx.channel.purge(limit=limit, check=check, before=ctx.message)
         counter = Counter([m.author.mention for m in deleted])
         amount_deleted = sum(counter.values())
 

@@ -232,7 +232,8 @@ class Context(commands.Context):
         Returns
         -------
         bool
-            True if confirmed, False if cancelled or timed out
+            True if confirmed
+            False if cancelled or timed out
         '''
         view = ConfirmUI(timeout)
         msg = await self.send(prompt, view=view)
@@ -253,7 +254,8 @@ class Context(commands.Context):
         Returns
         -------
         Loading
-            A context manager which you can use to update the message
+            A context manager which you can use to update the loading
+            message and deletes this message on exit
         '''
         return Loading(self, initial_message=initial_message)
 
