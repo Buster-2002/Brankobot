@@ -88,7 +88,7 @@ class Reminder:
 class CustomCommand:
     id: int
     creator_id: int
-    times_used: Optional[int]
+    times_used: int
     creation_timestamp: float
     name: str
     content: str
