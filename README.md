@@ -15,7 +15,7 @@ You are allowed to use this code, however it is purely designed for the two afor
 * Decent error handling
 * Response on mention
 * Response on server join
-* fully fledged birthdays, music, reminders and custom commands
+* Fully fledged birthdays, music, reminders, custom commands and more
 
 ### Commands
 
