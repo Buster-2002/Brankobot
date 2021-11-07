@@ -64,7 +64,6 @@ from .utils.paginators import (ClanWarsPaginator, ReplayPaginator,
 from .utils.wotreplay_folder import ReplayData
 
 
-# -- Cog -- #
 class WoT(commands.Cog):
     '''All the World of Tanks related commands are in this category'''
 
@@ -89,21 +88,27 @@ class WoT(commands.Cog):
 
 
     @staticmethod
-    def _combine_images(data: List[Image.Image], columns: int, image_size: Tuple[int]) -> Image.Image:
-        '''Combines a list of equal sized Image into one
+    def _combine_images(images: List[Image.Image], columns: int, image_size: Tuple[int]) -> Image.Image:
+        '''Combines a list of equal sized Image into one image collage
 
-        Args:
-            data (List[Image.Image]): The images to combine
-            columns (int): The amount of columns to fit all rows on
-            image_size (Tuple[int]): The size of each image
+        Parameters
+        ----------
+        data : List[Image.Image]
+            A list of images to combine into one
+        columns : int
+            The amount of columns to fit all rows on
+        image_size : Tuple[int]
+            The size of each image
 
-        Returns:
-            Image.Image: The combined image
+        Returns
+        -------
+        Image.Image
+            The combined image
         '''
         width, height = image_size
-        data = [data[i:i + columns] for i in range(0, len(data), columns)]
-        combined = Image.new('RGB', (columns * width, len(data) * height), '#070906')
-        for row_num, row in enumerate(data):
+        data = [images[i:i + columns] for i in range(0, len(images), columns)]
+        combined = Image.new('RGB', (columns * width, len(images) * height), '#070906')
+        for row_num, row in enumerate(images):
             for im_num, im in enumerate(row):
                 combined.paste(im, (im_num * width, row_num * height))
 
@@ -118,13 +123,19 @@ class WoT(commands.Cog):
         If the mark amount if higher, we use lower quality images to reduce
         processing time.
 
-        Args:
-            total_marks (int): The total amount of marks to determine sizes on
+        Parameters
+        ----------
+        total_marks : int
+            The total amount of marks to determine sizes on
 
-        Returns:
-            Tuple[str, Tuple[int, int], int, int, int]:
-            Image size for herhor.net, image + mark size, footer bar height,
-            font size, column amount
+        Returns
+        -------
+        Tuple[str, Tuple[int, int], int, int, int]
+            Image size for herhor.net (Large, Medium Small),
+            image size (width, height) (px),
+            footer bar height (px),
+            font size (px),
+            column amount
         '''
         to_image_size = {
             range(1, 14): (
@@ -158,10 +169,14 @@ class WoT(commands.Cog):
     def _format_clan_log(data: dict) -> Tuple[str, str]:
         '''Formats a data entry for the /clan/{clan_id}/log endpoint
 
-        Args:
-            data (dict): The data to make readable
+        Parameters
+        ----------
+        data : dict
+            The data to make readable
 
-        Returns:
+        Returns
+        -------
+        Tuple[str, str]
             Tuple[str, str]: A readable representation of a clan log item
         '''
         clan_tag = data.get('enemy_clan', {'tag': ''}).get('tag')
@@ -197,11 +212,24 @@ class WoT(commands.Cog):
     def _get_trend(value: int) -> str:
         '''Gets a trend based on a change value
 
-        Args:
-            value (int): The value to base the trend on
+        Example
+        -------
+        >>> self._get_trend(10)
+        '↑ 10'
+        >>> self._get_trend(-5)
+        '↓ 5'
+        >>> self._get_trend(0)
+        '→ 0'
 
-        Returns:
-            str: <arrow> <abs(change)>
+        Parameters
+        ----------
+        value : int
+            The value to base the trend on
+
+        Returns
+        -------
+        str
+            <arrow up/down/right> <absolute change value>
         '''
         char = '→'
         value = value or 0
@@ -215,13 +243,18 @@ class WoT(commands.Cog):
     @alru_cache(maxsize=1024)
     async def _get_image_from_url(self, url: str) -> Image.Image:
         '''Cached
+
         Retrieves an Image from URL
 
-        Args:
-            url (str): The web url to get the image from
+        Parameters
+        ----------
+        url : str
+            The web url to get the image from
 
-        Returns:
-            Image.Image: The Image belonging to the url
+        Returns
+        -------
+        Image.Image
+            The Image found on the url
         '''
         return Image.open(BytesIO(await (await self.bot.AIOHTTP_SESSION.get(url)).read()))
 
@@ -229,13 +262,18 @@ class WoT(commands.Cog):
     @alru_cache()
     async def _get_current_campaign(self) -> GlobalmapEvent:
         '''Cached
-        Retrieves the current running campaigns data
 
-        Raises:
-            ApiError: Getting the data failed
+        Retrieves the latest clanwars campaign data
 
-        Returns:
-            GlobalmapEvent: The latest global map event
+        Returns
+        -------
+        GlobalmapEvent
+            The latest global map event, currently active or not
+
+        Raises
+        ------
+        ApiError
+            Getting the data failed
         '''
         data = await self.bot.wot_api('/wot/globalmap/events/')
         event_data = data['data'][0]
@@ -251,15 +289,22 @@ class WoT(commands.Cog):
 
 
     def _generate_requirements_image(self, moe_data: dict, moe_days: int, tank: Tank) -> discord.File:
-        '''Generates a requirements image from previous MoE req data
+        '''Generates a requirements image from previous Mark of Excellence
+        requirements data
 
-        Args:
-            moe_data (dict): The MoE data to base the model on
-            moe_days (int): The amount of days to graph the data for
-            tank (Tank): The tank to graph the data for
+        Parameters
+        ----------
+        moe_data : dict
+            The MoE data to base the image on
+        moe_days : int
+            The amount of days to graph the data for
+        tank : Tank
+            The tank to graph the data for
 
-        Returns:
-            discord.File: The MoE graph image
+        Returns
+        -------
+        discord.File
+            The MoE graph image
         '''
         plt.rcParams.update({
             'axes.facecolor': (0.3, 0.32, 0.36, 0.45),
@@ -307,13 +352,19 @@ class WoT(commands.Cog):
     async def _generate_mark_image(self, player: Player, separate_nations: bool, data: List[TankStats]) -> discord.File:
         '''Combines data into image displaying marks of excellence
 
-        Args:
-            player (Player): The player the marks belong to
-            separate_nations (bool): Whether to separate nations with blank tiles
-            data (List[TankStats]): A list of TankStats containing a mark value
+        Parameters
+        ----------
+        player : Player
+            The player the marks belong to
+        separate_nations : bool
+            Whether to separate nations with blank tiles
+        data : List[TankStats]
+            A list of TankStats containing a mark value
 
-        Returns:
-            discord.File: The image collage of all marks
+        Returns
+        -------
+        discord.File
+            The image collage of all marks
         '''
         total_3_marks: int = sum([item.mark is MarkType.third_mark for item in data])
         total_2_marks: int = sum([item.mark is MarkType.second_mark for item in data])
@@ -398,17 +449,34 @@ class WoT(commands.Cog):
     ) -> List[TankStats]:
         '''Returns tank stats for a player by their account ID
 
-        Args:
-            account_id (int): The players account ID to retrieve tank stats for
-            nations (List[str]): The nations to filter to
-            types (List[str]): The tank types to filter  to
-            tiers (List[str]): The tiers to filter to
+        Parameters
+        ----------
+        account_id : int
+            The WoT account ID of the player you want tank stats for
+        nations : List[str]
+            The tank nations to filter to
+        types : List[str]
+            The tank types to filter to
+        tiers : List[str]
+            The tank tiers to filter to
+        roles : List[str], optional
+            The tank roles to filter to, by default []
+        include_premiums : bool, optional
+            Whether to include premium tanks, by default True
+        include_normal : bool, optional
+            Whether to include non-premium/non-collector tanks, by default True
+        include_collector : bool, optional
+            Whether to include collector tanks, by default True
 
-        Raises:
-            ApiError: Getting the data failed
+        Returns
+        -------
+        List[TankStats]
+            A list of TankStats for each tank de player has ever played
 
-        Returns:
-            List[TankStats]: A list of TankStats for each tank de player has ever played
+        Raises
+        ------
+        ApiError
+            Getting the data failed
         '''
         premium, collector = [], []
         if include_normal:
@@ -451,19 +519,26 @@ class WoT(commands.Cog):
 
 
     async def _search_player(self, player_search: str, player_region: Region) -> Player:
-        '''Searches for a WoT player on a region by query
+        '''Searches for a WoT player on a region by player name
 
-        Args:
-            player_search (str): The player query to search by
-            player_region (Region): The region to search in
+        Parameters
+        ----------
+        player_search : str
+            The player name to search by
+        player_region : Region
+            The region to search in
 
-        Raises:
-            InvalidNickname: The nickname search isnt a valid WoT nickname
-            ApiError: Getting the data failed
-            PlayerNotFound: No player was found by the query
+        Returns
+        -------
+        Player
+            The player, if found
 
-        Returns:
-            Player: The player, if found
+        Raises
+        ------
+        InvalidNickname
+            The player search doesn't match a valid WoT nickname
+        PlayerNotFound
+            No player was found by the player search query
         '''
         pattern = re.compile(r'^\w{3,24}$')
         if pattern.match(player_search) is None:
@@ -490,19 +565,26 @@ class WoT(commands.Cog):
 
 
     async def _search_clan(self, clan_search: str, clan_region: Region) -> Clan:
-        '''Searches for a WoT clan on a region by query
+        '''Searches for a WoT clan on a region by clan tag or name
 
-        Args:
-            clan_search (str): The clan query to search by
-            clan_region (Region): The region to search in
+        Parameters
+        ----------
+        clan_search : str
+            The clan tag or name to search by
+        clan_region : Region
+            The region to search in
 
-        Raises:
-            InvalidNickname: The clan name search isnt a valid WoT clan name
-            ApiError: Getting the data failed
-            PlayerNotFound: No clan was found by the query
+        Returns
+        -------
+        Clan
+            The clan, if found
 
-        Returns:
-            Clan: The clan, if found
+        Raises
+        ------
+        InvalidClan
+            The clan search doesn't match a valid WoT clan name or tag
+        ClanNotFound
+            No clan was found by the clan search query
         '''
         pattern = re.compile(r'^[\w-]{2,20}$')
         if pattern.match(clan_search) is None:
