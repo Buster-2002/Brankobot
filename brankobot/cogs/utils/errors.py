@@ -133,7 +133,8 @@ class ReminderDoesntExist(ReminderError):
         self.id = id
 
 class TimeTravelNotPossible(ReminderError):
-    def __init__(self, date: datetime):
+    def __init__(self, detected: str, date: datetime):
+        self.detected = detected
         self.date = date
 
 class NotReminderOwner(ReminderError):
