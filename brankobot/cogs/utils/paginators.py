@@ -82,7 +82,7 @@ class CustomCommandsPaginator(menus.ListPageSource):
 
     async def format_page(self, menu, entries: List[CustomCommand]) -> discord.Embed:
         embed = (await self.ctx.send_response(
-            '\n'.join(f'**{cc.id}.** {cc.name}' for cc in entries),
+            '\n'.join(f'**{str(cc.id).zfill(3)}.** {cc.name} - {cc.times_used}' for cc in entries),
             title=(f'{self.user.display_name}\'s ' if self.user else '') + f"Custom Commands ({menu.current_page + 1}/{self.get_max_pages()})",
             send=False,
             show_invoke_speed=False
