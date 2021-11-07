@@ -27,7 +27,7 @@ import random
 from datetime import date, datetime
 from io import BytesIO
 from pathlib import Path
-from textwrap import dedent, wrap
+from textwrap import dedent, fill
 from typing import Union
 
 import dateparser
@@ -125,39 +125,54 @@ class Fun(commands.Cog):
         ft = im.format.lower()
         W = im.size[0]
 
+        # Calculate the size of the font by taking the length
+        # of the text and increasing it depending on the amount
+        # of text
         fontsize = 1
         if len(text) < 23:
             while font.getsize(text)[0] < (0.9 * W):
                 fontsize += 1
                 font = ImageFont.truetype(BEBASNEUE, fontsize)
+
         else:
             font = ImageFont.truetype(BEBASNEUE, 50)
 
+        # Calculate width of text by taking the width of the image
+        # and slowly increasing it untill it fits 90%
         width = 1
-        lines = wrap(text, width)
-        while font.getsize(max(lines, key=len))[0] < (0.9 * W):
+        lines = fill(text, width)
+        while font.getsize_multiline(lines)[0] < (0.9 * W):
             width += 1
-            lines = wrap(text, width)
+            lines = fill(text, width)
             if width > 50:
                 break
 
-        bar_height = int((len(lines) * font.getsize(lines[0])[1])) + 8
+        # Calculate bar height to fit the text on by getting the
+        # total height of the text 
+        bar_height = font.getsize_multiline(lines)[1] + 8
 
+        # Add text to each frame in the gif
         for frame in ImageSequence.Iterator(im):
             frame = frame.convert('RGBA')
-            frame = ImageOps.expand(frame, (0, bar_height, 0, 0), 'white').convert('RGBA')
+            frame = ImageOps.expand(
+                image=frame,
+                border=(0, bar_height, 0, 0),
+                fill='white'
+            ).convert('RGBA')
+
             draw = ImageDraw.Draw(frame)
-            for i, line in enumerate(lines):
-                w, h = draw.multiline_textsize(line, font=font)
-                draw.text(
-                    ((W - w) / 2, i * h),
-                    line,
-                    'black',
-                    font
-                )
+            draw.multiline_text(
+                xy=(W / 2, 0),
+                text=lines,
+                fill='black',
+                font=font,
+                align='center', # Aligment for individual lines
+                anchor='ma'     # Total text alignment relative to xy being middle top
+            )
 
             frames.append(frame.convert('RGBA'))
 
+        # Save Image as discord File ready to send
         fp = BytesIO()
         save_transparent_gif(frames, im.info.get('duration', 64), fp)
         fp.seek(0)
