@@ -48,7 +48,6 @@ from .utils.models import CustomCommand, Reminder
 from .utils.paginators import CustomCommandsPaginator, ReminderPaginator
 
 
-# -- Cog -- #
 class Utilities(commands.Cog):
     '''All the utility commands'''
 
@@ -454,7 +453,7 @@ class Utilities(commands.Cog):
 
     @cc.command('list', aliases=['all'])
     async def cc_list(self, ctx: Context, user: discord.User = None):
-        '''Shows custom commands, optionally filtering by a user'''
+        '''Shows custom commands sorted by usage, optionally filtering by a user'''
         cursor = await self.bot.CONN.cursor()
         try:
             select_commands_query = dedent('''
@@ -471,9 +470,14 @@ class Utilities(commands.Cog):
 
             if rows:
                 custom_commands = [CustomCommand(*r) for r in rows]
+                sorted_data = sorted(
+                    custom_commands,
+                    key=lambda item: item.times_used,
+                    reverse=True
+                )
                 pages = ViewMenuPages(
                     source=CustomCommandsPaginator(
-                        custom_commands,
+                        sorted_data,
                         ctx,
                         user
                     ), clear_reactions_after=True
