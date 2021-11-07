@@ -28,13 +28,33 @@ from enum import Enum
 from typing import Any
 
 
-def try_enum(cls, val: Any, *, reverse_lookup: bool = False):
+def try_enum(cls: Any, value: Any, *, reverse_lookup: bool = False) -> Any:
+    '''Tries to return cls Enum by value or key
+
+    Parameters
+    ----------
+    cls : Any
+        The Enum to get the value or key from
+    value : Any
+        The value to find in the cls Enum
+    reverse_lookup : bool, optional
+        True to map value to key
+        False to map key to value, by default False
+
+    Returns
+    -------
+    Any
+        The enum value if reveerse_lookup is False
+        else the enum key as string
+    '''
     try:
         if reverse_lookup:
-            return cls._value2member_map_[val]
-        return cls._member_map_[val].value
+            return cls._value2member_map_[value]
+
+        return cls._member_map_[value].value
+
     except (KeyError, TypeError, AttributeError):
-        return val
+        return value
 
 
 class _StrIsValue:
@@ -179,6 +199,7 @@ class Emote(_StrIsValue, Enum):
     feels_birthday_man = '<:feels_birthday_man:905125599079702578>'
     loading            = '<a:loading:905516653931016252>'
     cry                = ':cry:'
+    joy                = ':joy:'
     heart              = ':heart:'
     oncoming_bus       = ':oncoming_bus:'
     eyes               = ':eyes:'
