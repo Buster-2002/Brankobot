@@ -50,14 +50,8 @@ from .utils.errors import *
 from .utils.models import Achievement, Birthday, Reminder, Tank
 
 
-# -- Cog -- #
 class Events(commands.Cog):
-    '''
-    All events that can happen
-    - respond to certain on message events
-    - respond to being ready
-    - respond to member joining
-    '''
+    '''Contains reactions for events that can occur while the bot is running'''
 
     def __init__(self, bot):
         self.bot: Bot = bot
@@ -125,11 +119,11 @@ class Events(commands.Cog):
         
         Actions
         -------
-        - create bot.AIOHTTP_SESSION
-        - load tanks in bot.TANKS
-        - load achievements in bot.ACHIEVEMENTS
-        - create bot.CONN and check if reminders and custom_commands tables are in place
-        - load reminders from database and start their timer
+        * create bot.AIOHTTP_SESSION
+        * load tanks in bot.TANKS
+        * load achievements in bot.ACHIEVEMENTS
+        * create bot.CONN and check if reminders and custom_commands tables are in place
+        * load reminders from database and start their timer
         '''
         if self.bot.BEEN_READY is False:
             # Load variables that require async func
@@ -312,9 +306,9 @@ class Events(commands.Cog):
 
         Actions
         -------
-        - send a message in the channel where the reminder was created,
+        * send a message in the channel where the reminder was created,
           replying to the message that created it
-        - delete reminder from database
+        * delete reminder from database
         '''
         cursor = await self.bot.CONN.cursor()
         try:
@@ -354,9 +348,9 @@ class Events(commands.Cog):
 
         Actions
         -------
-        - react if mentioned
-        - send custom command content if its found, and increment its usage by 1
-        - send message content if it is the same 4x in a row
+        * react if mentioned
+        * send custom command content if its found, and increment its usage by 1
+        * send message content if it is the same 4x in a row
         '''
         channel = message.channel
         content = message.content
@@ -386,7 +380,7 @@ class Events(commands.Cog):
                     if not retry_after:
                         await channel.send(command.content)
                         logger = logging.getLogger('brankobot')
-                        logger.info(f'"{author}" used "{command.name}" in #{channel}')
+                        logger.info(f'"{author}" used ">{command.name}" in #{channel}')
 
                         # Increment usage by 1
                         update_command_query = dedent('''
@@ -437,7 +431,7 @@ class Events(commands.Cog):
 
         Actions
         -------
-        - Brankobot will send a welcoming message if
+        * Brankobot will send a welcoming message if
           that server is small or big RLD Discord.
         '''
         logger = logging.getLogger('brankobot')
@@ -462,7 +456,7 @@ class Events(commands.Cog):
 
         Actions
         -------
-        - Bot will remove any reminders/birthdays
+        * Bot will remove any reminders/birthdays
           associated with this user in this guild.
         '''
         logger = logging.getLogger('brankobot')
@@ -505,7 +499,7 @@ class Events(commands.Cog):
 
         Actions
         -------
-        - Adds an invoke time for a command to calculate
+        * Adds an invoke time for a command to calculate
           time it took to respond
         '''
         ctx.command.invoke_time = time.perf_counter()
@@ -517,10 +511,10 @@ class Events(commands.Cog):
 
         Actions
         -------
-        - Bot will log command usage to logging file
+        * Bot will log command usage to logging file
         '''
         logger = logging.getLogger('brankobot')
-        logger.info(f'"{ctx.author}" used "{ctx.command.qualified_name}" in #{ctx.channel}')
+        logger.info(f'"{ctx.author}" used "{ctx.prefix}{ctx.command.qualified_name}" in #{ctx.channel}')
 
 
     @commands.Cog.listener()
@@ -529,7 +523,7 @@ class Events(commands.Cog):
 
         Actions
         -------
-        - Handles error by sending message with information'''
+        * Handles error by sending message with information'''
         if ctx.command:
             ctx.command.reset_cooldown(ctx)
 
@@ -541,18 +535,18 @@ class Events(commands.Cog):
             exc = f'{error.user} has no birthday registered'
 
         elif isinstance(error, NoBirthdays):
-            exc = 'No people have registered their birthday in this server'
+            exc = 'no people have registered their birthday in this server'
 
         elif isinstance(error, NotAModerator):
-            exc = 'Only moderators can remove birthdays from the database to prevent spamming'
+            exc = 'sorry, only xo\'s/po\'s/co\'s can remove birthdays from the database to prevent spamming'
 
         elif isinstance(error, BirthdayAlreadyRegistered):
-            exc = f'You have already registered your birthday ({format_dt(error.birthday.date)}) in {self.bot.get_guild(error.birthday.server_id)}'
+            exc = f'you have already registered your birthday ({format_dt(error.birthday.date)}) in {self.bot.get_guild(error.birthday.server_id)}'
 
         # music errors
         elif isinstance(error, VoiceChannelError):
             if error.destination:
-                exc = f'Couldn\'t connect to {error.destination.mention}: {error.message}'
+                exc = f'couldn\'t connect to {error.destination.mention}: {error.message}'
             else:
                 exc = error.message
 
@@ -560,112 +554,112 @@ class Events(commands.Cog):
             exc = 'I am not currently playing any music'
 
         elif isinstance(error, EmptyQueue):
-            exc = 'The music queue is empty'
+            exc = 'the music queue is empty'
 
         elif isinstance(error, InvalidVolume):
             exc = f'{error.volume}% is not valid, pick a number between 0 and 100'
 
         # Reminder errors
         elif isinstance(error, NoTimeFound):
-            exc = 'I couldn\'t find a time in your reminder. Use e.g "in 4 hours watch quickybaby" or "at 22:30 GMT+1 play stronghold with RLD"'
-
-        elif isinstance(error, commands.CheckFailure):
-            exc = 'You can only use `help` in #bot'
+            exc = 'I couldn\'t find a time in your reminder. use e.g "in 4 hours watch quickybaby" or "at 22:30 GMT+1 play stronghold with RLD"'
 
         elif isinstance(error, TimeTravelNotPossible):
-            exc = f'You can\'t travel back in time {naturaldelta(datetime.datetime.now() - error.date)} 🙄'
+            exc = f'detected "{error.detected}" - you can\'t travel back in time {naturaldelta(datetime.datetime.now() - error.date)} 🙄 (maybe prefix your argument with "in"?)'
 
         elif isinstance(error, ReminderDoesntExist):
-            exc = f'The reminder {error.id} doesn\'t exist'
+            exc = f'the reminder {error.id} doesn\'t exist'
 
         elif isinstance(error, NoReminders):
-            exc = 'You have no current running reminders'
+            exc = 'you have no current running reminders'
 
         elif isinstance(error, NotReminderOwner):
             owner = ctx.bot.get_user(error.reminder.creator_id)
-            exc = f'You don\'t own this reminder. It belongs to {owner}'
+            exc = f'you don\'t own this reminder. it belongs to {owner}'
 
         # Custom command errors
         elif isinstance(error, CommandExists):
-            exc = f'The command {error.command_name} command already exist'
+            exc = f'the command {error.command_name} command already exist'
 
         elif isinstance(error, CommandDoesntExist):
-            exc = f'The command {error.command_name} command doesn\'t exist'
+            exc = f'the command {error.command_name} command doesn\'t exist'
 
         elif isinstance(error, NotCommandOwner):
             owner = ctx.bot.get_user(error.command.creator_id)
-            exc = f'You don\'t own this command. It belongs to {owner}'
+            exc = f'you don\'t own this command. It belongs to {owner}'
 
         elif isinstance(error, NoCustomCommands):
             if error.user:
                 exc = f'{error.user} doesn\'t own any custom commands'
             else:
-                exc = 'Couldn\'t find any custom commands by your query'
+                exc = f'couldn\'t find any custom commands by your query {Emote.monocle}'
 
         elif isinstance(error, InvalidCommandName):
-            exc = 'You can\'t name your command this. Make sure its at least 1 character and at most 50 characters long, and consists of just latin characters / spaces / numbers'
+            exc = 'you can\'t name your command this. make sure its at least 1 character and at most 50 characters long, and consists of just latin characters/spaces/numbers'
 
         elif isinstance(error, InvalidCommandContent):
-            exc = 'You can\'t have your command send this. Make sure the content is at most 500 chars long'
+            exc = 'you can\'t have your command send this. Make sure the content is at most 500 chars long'
 
         # Other errors
         elif isinstance(error, aiosqlite.Error):
             await self.bot.CONN.rollback()
-            await ctx.reply(f'Database had an error: {error} (<@764584777642672160>)', mention_author=False)
+            await ctx.reply(f'database issue: {error} (<@764584777642672160>)', mention_author=False)
             raise error
 
+        elif isinstance(error, commands.CheckFailure):
+            exc = 'you can only use `help` in #bot'
+
         elif isinstance(error, ReplayError):
-            exc = f'Something went wrong: {error.message}'
+            exc = f'something went wrong: {error.message}'
 
         elif isinstance(error, ChannelNotAllowed):
             allowed = ', '.join(list(filter(None, set([getattr(ctx.guild.get_channel(i), 'mention', None) for i in error.allowed_ids]))))
-            exc = f'You can only use this command in: {allowed}'
+            exc = f'you can only use this command in: {allowed}'
 
         elif isinstance(error, MissingRoles):
             allowed = ', '.join(list(filter(None, set([getattr(ctx.guild.get_role(i), 'mention', None) for i in error.allowed_ids]))))
-            exc = f'You are missing any of the following roles to use this command: {allowed}'
+            exc = f'you are missing any of the following roles to use this command: {allowed}'
 
         elif isinstance(error, NotARegion):
-            exc = f'The argument {error.region_argument} isn\'t a valid region. Choose eu/europe, na/america or ru/russia'
+            exc = f'the argument {error.region_argument} isn\'t a valid region. Choose eu/europe, na/america or ru/russia'
 
         elif isinstance(error, NoMoe):
-            exc = f'The player {error.nickname} on region {error.region} hasn\'t achieved any marks of excellence'
+            exc = f'the player {error.nickname} on region {error.region} hasn\'t achieved any marks of excellence'
 
         elif isinstance(error, InvalidNickname):
-            exc = 'The input nickname must be between or equal to 3 to 24 characters, and should only contain letters and numbers'
+            exc = 'the input nickname must be between or equal to 3 to 24 characters, and should only contain letters and numbers'
 
         elif isinstance(error, InvalidFlags):
-            exc = 'No data could be found with your flags'
+            exc = 'no data could be found with your flags'
 
         elif isinstance(error, PlayerNotFound):
-            exc = f'The player {error.nickname} couldn\'t be found on region {error.region}'
+            exc = f'the player {error.nickname} couldn\'t be found on region {error.region}'
 
         elif isinstance(error, InvalidClan):
-            exc = 'The input clan tag/name must be between 2 to 20 characters, and should only contain letters, numbers and underscores'
+            exc = 'the input clan tag/name must be between 2 to 20 characters, and should only contain letters, numbers and underscores'
 
         elif isinstance(error, ClanNotFound):
-            exc = f'The clan {error.clan} couldn\'t be found on region {error.region}'
+            exc = f'the clan {error.clan} couldn\'t be found on region {error.region}'
 
         elif isinstance(error, TankNotFound):
-            exc = f'The tank {error.tank} couldn\'t be found'
+            exc = f'the tank {error.tank} couldn\'t be found'
 
         elif isinstance(error, ApiError):
             exc = f'WoT API failed: {error.http_code}: {error.error_message.replace("_", " ").capitalize()}'
 
         elif isinstance(error, commands.MissingAnyRole):
-            exc = f'You are missing one of the required roles ({", ".join(error.missing_roles)}) to use this command :joy:'
+            exc = f'you are missing one of the required roles ({", ".join(error.missing_roles)}) to use this command {Emote.joy}'
 
         elif isinstance(error, commands.BadArgument):
-            exc = f'Bad input argument(s): {error}'
+            exc = f'bad input argument(s): {error}'
 
         elif isinstance(error, commands.NotOwner):
-            exc = 'You can\'t use this command'
+            exc = f'you can\'t use this command {Emote.joy}'
 
         elif isinstance(error, commands.CommandOnCooldown):
-            exc = f'The command is on cooldown ({error.type.name} scope). try again in {error.retry_after:.0f}s :joy:'
+            exc = f'the command is on cooldown ({error.type.name} scope). try again in {error.retry_after:.0f}s {Emote.joy}'
 
         elif isinstance(error, commands.MissingRequiredArgument):
-            exc = f'You are missing a required argument: {error.param}'
+            exc = f'you are missing a required argument: {error.param}'
 
         else:
             await ctx.reply(f'Something unexpected happened (mention buster if issue persists): {str(error)}', mention_author=False)
