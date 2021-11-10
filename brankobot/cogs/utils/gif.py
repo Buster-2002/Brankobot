@@ -26,7 +26,9 @@ DEALINGS IN THE SOFTWARE.
 
 from collections import defaultdict
 from itertools import chain
+from pathlib import Path
 from random import randrange
+from typing import BinaryIO, List, Union
 
 from PIL import Image
 
@@ -163,15 +165,18 @@ def _create_animated_gif(images, durations):
     return output_image, save_kwargs
 
 
-def save_transparent_gif(images, durations, save_file):
-    '''Creates a transparent GIF, adjusting to avoid transparency issues that are present in the PIL library
-    Args:
-        images: a list of PIL Image objects that compose the GIF frames
-        durations: an int or List[int] that describes the animation durations for the frames of this GIF
-        save_file: A filename (string), pathlib.Path object or file object. (This parameter corresponds
-                   and is passed to the PIL.Image.save() method.)
-    Returns:
-        Image - The PIL Image object (after first saving the image to the specified target)
+def save_transparent_gif(images: List[Image.Image], durations: Union[int, List[int]], save_file: Union[str, Path, BinaryIO]):
+    '''Creates a transparent GIF, adjusting to avoid transparency issues
+    that are present in the PIL library
+
+    Parameters
+    ----------
+    images : List[Image.Image]
+        A list of PIL Image objects that compose the GIF frames
+    durations : Union[int, List[int]]
+        The animation durations for the frames of this GIF
+    save_file : Union[str, Path, BinaryIO]
+        Where to save the end result to (as passed to `PIL.Image.save()`)
     '''
     root_frame, save_args = _create_animated_gif(images, durations)
     root_frame.save(save_file, **save_args)
