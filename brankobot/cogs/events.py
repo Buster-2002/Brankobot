@@ -284,10 +284,9 @@ class Events(commands.Cog):
             rows = await result.fetchall()
 
             if rows:
+                today = datetime.date.today()
                 birthdays = [Birthday(*r) for r in rows]
                 for birthday in birthdays:
-                    today = datetime.date.today()
-
                     # Only proceed if today is actually the day...
                     if (today.month, today.day) == (birthday.date.month, birthday.date.day):
                         server_id = birthday.server_id
