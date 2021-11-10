@@ -24,19 +24,18 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 '''
 
-from contextlib import suppress
 from difflib import get_close_matches
 from tempfile import TemporaryDirectory
 from textwrap import dedent
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 import discord
 from discord.ext import commands
 from discord.ext.menus.views import ViewMenuPages
 from discord.utils import escape_markdown, format_dt
+from main import Bot, Context
 from youtube_dl.YoutubeDL import DownloadError, YoutubeDL
 
-from main import Bot, Context
 from .utils.checks import channel_check, is_moderator, role_check
 from .utils.converters import CommandNameCheck, ReminderConverter
 from .utils.enums import BigRLDRoleType, SmallRLDRoleType
