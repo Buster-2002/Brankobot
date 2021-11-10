@@ -25,6 +25,7 @@ DEALINGS IN THE SOFTWARE.
 '''
 
 from difflib import get_close_matches
+from functools import partial
 from tempfile import TemporaryDirectory
 from textwrap import dedent
 from typing import Optional, Union
@@ -33,9 +34,9 @@ import discord
 from discord.ext import commands
 from discord.ext.menus.views import ViewMenuPages
 from discord.utils import escape_markdown, format_dt
-from main import Bot, Context
 from youtube_dl.YoutubeDL import DownloadError, YoutubeDL
 
+from main import Bot, Context
 from .utils.checks import channel_check, is_moderator, role_check
 from .utils.converters import CommandNameCheck, ReminderConverter
 from .utils.enums import BigRLDRoleType, SmallRLDRoleType
@@ -69,13 +70,8 @@ class Utilities(commands.Cog):
                 'outtmpl': f'{temp_dir.name}//%(id)s.%(ext)s'
             }
             try:
-                meta = await self.bot.loop.run_in_executor(
-                    None,
-                    lambda: YoutubeDL(ytdl_options).extract_info(
-                        link,
-                        download=True
-                    )
-                )
+                to_run = partial(YoutubeDL(ytdl_options).extract_info, url=link, download=True)
+                meta = await self.bot.loop.run_in_executor(None, to_run)
             except DownloadError as e:
                 await ctx.reply(f'Couldn\'t download: {e} (file too big?)', delete_after=60, mention_author=False)
             else:
