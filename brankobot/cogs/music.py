@@ -290,7 +290,7 @@ class Music(commands.Cog):
     @role_check()
     @commands.command('play', aliases=['add'])
     async def play_(self, ctx: Context, *, query: str):
-        '''Plays a song by search or URL'''
+        '''Plays a song by search query or URL'''
         async with ctx.typing():
             voice_client = ctx.voice_client
             if voice_client is None:

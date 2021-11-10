@@ -663,6 +663,6 @@ bot = Bot()
 if __name__ == '__main__':
     for ext in EXTENSIONS:
         bot.load_extension(ext)
-        print(f'[*] Loaded cog {ext}')
+        print(f'[*] Loaded extension {ext}')
 
     bot.run(bot.DISCORD_API_TOKEN)

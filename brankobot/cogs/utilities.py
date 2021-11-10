@@ -125,7 +125,7 @@ class Utilities(commands.Cog):
         'reminder',
         invoke_without_command=True,
         aliases=['remind', 'reminders'],
-        usage='<reminder (should contain a loose interpretation of time, e.g "in 4 hours watch quickybaby" or "at 22:30, play stronghold with RLD")>'
+        usage='<reminder (should contain a loose interpretation of time, e.g "in 4 hours watch quickybaby" or "at 22:30, play stronghold with TAF-G")>'
     )
     async def _reminder(self, ctx: Context, *, reminder: ReminderConverter):
         '''Creates a reminder from message'''
@@ -228,7 +228,7 @@ class Utilities(commands.Cog):
         await self.bot.delete_reminder(reminder)
         await ctx.send_response(
             f'Removed reminder with ID `{id}`',
-            title='Reminder removed'
+            title='Reminder Removed'
         )
 
     @_reminder.command('clear')
@@ -237,11 +237,11 @@ class Utilities(commands.Cog):
         cursor = await self.bot.CONN.cursor()
         try:
             select_reminders_query = dedent('''
-                SELECT id
+                SELECT *
                 FROM reminders
                 WHERE creator_id = ?;
             '''.strip())
-            
+
             result = await cursor.execute(
                 select_reminders_query,
                 (ctx.author.id,)
@@ -252,6 +252,11 @@ class Utilities(commands.Cog):
                 reminders = [Reminder(*r) for r in rows]
                 for reminder in reminders:
                     await self.bot.delete_reminder(reminder)
+
+                await ctx.send_response(
+                    f'Removed {len(reminders)} reminders',
+                    title='Cleared Reminders'
+                )
 
             else:
                 raise NoReminders()
