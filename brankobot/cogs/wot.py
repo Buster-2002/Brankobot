@@ -32,7 +32,7 @@ from datetime import datetime, timedelta
 from io import BytesIO
 from tempfile import NamedTemporaryFile
 from textwrap import dedent
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import discord
 import iso639
@@ -209,7 +209,7 @@ class WoT(commands.Cog):
 
 
     @staticmethod
-    def _get_trend(value: int) -> str:
+    def _get_trend(value: Optional[int]) -> str:
         '''Gets a trend based on a change value
 
         Example

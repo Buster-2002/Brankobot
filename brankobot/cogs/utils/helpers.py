@@ -28,7 +28,7 @@ import datetime
 import re
 from contextlib import suppress
 from types import TracebackType
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Any
 
 import discord
 from discord.ext import commands
@@ -140,7 +140,7 @@ class Loading:
         self._message = await self.ctx.reply(self._format_message(self.initial_message), mention_author=False)
         return self # Necessary to return instance for "as" statement
 
-    async def __aexit__(self, exc_type: type, exc: Exception, tb: TracebackType) -> None:
+    async def __aexit__(self, exc_type: Any, exc: Exception, tb: TracebackType) -> None:
         with suppress(discord.HTTPException, AttributeError):
             await self._message.delete()
 
