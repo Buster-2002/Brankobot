@@ -259,7 +259,6 @@ class Fun(commands.Cog):
 
 
     @channel_check()
-    @role_check()
     @commands.cooldown(1, 15, commands.BucketType.user)
     @commands.command(aliases=['makememe', 'gifcaption', 'captiongif'])
     async def caption(self, ctx: Context, link: str, *, text: str):
@@ -426,7 +425,7 @@ class Fun(commands.Cog):
         await ctx.send(f'https://strawpoll.com/{r["content_id"]}')
 
 
-    @role_check(BigRLDRoleType.member, SmallRLDRoleType.member)
+    @role_check(BigRLDRoleType.member, BigRLDRoleType.onlyfans, SmallRLDRoleType.member)
     @commands.cooldown(1, 300, commands.BucketType.user)
     @commands.group(
         invoke_without_command=True,
@@ -436,7 +435,6 @@ class Fun(commands.Cog):
     async def birthday(self, ctx: Context, birth_date: str):
         '''Registers your birthday for brankobot to sell on the dark web (and to congratulate)'''
         birth_date = dateparser.parse(birth_date, ['%d/%m/%Y', '%d-%m-%Y', '%-d %b, %Y'])
-        today = date.today()
 
         cursor = await self.bot.CONN.cursor()
         try:
