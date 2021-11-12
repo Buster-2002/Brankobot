@@ -3,7 +3,7 @@ Made by Buster#5741
 
 ### Summary
 A private bot for the [-RLD-](https://eu.wargaming.net/clans/wot/500075680/) and [\_RLD\_](https://eu.wargaming.net/clans/wot/500018519/) WoT clan Discord servers.  
-You are allowed to use this code, however it is purely designed for the two aforementioned servers, so you would need to edit some code.
+You are allowed to use this code, however it is purely designed for the two aforementioned servers, so you would need to edit some stuff.
 
 ### Requirements
 * A .env file with two values: `DISCORD_TOKEN` and `WOT_API_TOKEN`
@@ -15,7 +15,10 @@ You are allowed to use this code, however it is purely designed for the two afor
 * Decent error handling
 * Response on mention
 * Response on server join
-* Fully fledged birthdays, music, reminders, custom commands and more
+* Repeating content that was said 4x in a row
+* Fully fledged birthdays, music, reminders and custom commands
+* Advanced World of Tanks related commands
+* More
 
 ### Commands
 
