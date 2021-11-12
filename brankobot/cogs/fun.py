@@ -25,6 +25,7 @@ DEALINGS IN THE SOFTWARE.
 '''
 import random
 from datetime import date, datetime
+from functools import partial
 from io import BytesIO
 from pathlib import Path
 from textwrap import dedent, fill
@@ -266,12 +267,8 @@ class Fun(commands.Cog):
         async with ctx.loading(initial_message='Downloading') as loader:
             b = await self._get_bytes(link)
             await loader.update('Generating')
-            _file, ft = await self.bot.loop.run_in_executor(
-                None,
-                lambda: self._generate_caption(
-                    b, text
-                )
-            )
+            to_run = partial(self._generate_caption, b, text)
+            _file, ft = await self.bot.loop.run_in_executor(None, to_run)
             await loader.update('Uploading')
             await ctx.send_response(image=f'attachment://caption.{ft}', files=_file)
 
