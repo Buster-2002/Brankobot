@@ -34,7 +34,7 @@ from .enums import (BigRLDChannelType, BigRLDRoleType, SmallRLDChannelType,
 from .errors import ChannelNotAllowed, MissingRoles, VoiceChannelError
 
 
-def is_moderator(ctx: Context) -> bool:
+async def is_moderator(ctx: Context) -> bool:
     '''Returns whether the user has some moderator roles
        that are specific to small/big RLD Discord
 
@@ -49,21 +49,24 @@ def is_moderator(ctx: Context) -> bool:
         True if user has xo, po or co role
         False if not
     '''
-    moderator_roles = {
-        BigRLDRoleType.xo,
-        SmallRLDRoleType.xo,
-        BigRLDRoleType.po,
-        SmallRLDRoleType.po,
-        BigRLDRoleType.co,
-        SmallRLDRoleType.co
-    }
-    allowed_ids = {mr.value for mr in moderator_roles}
-    return any([r.id in allowed_ids for r in ctx.author.roles])
+    if (await ctx.bot.is_owner(ctx.author)) is False:
+        moderator_roles = {
+            BigRLDRoleType.xo,
+            SmallRLDRoleType.xo,
+            BigRLDRoleType.po,
+            SmallRLDRoleType.po,
+            BigRLDRoleType.co,
+            SmallRLDRoleType.co
+        }
+        allowed_ids = {mr.value for mr in moderator_roles}
+        return any([r.id in allowed_ids for r in ctx.author.roles])
+
+    return True
 
 
 def is_connected():
     '''Returns whether the invoker is connected to a voice channel
-    '''    
+    '''
     async def predicate(ctx: Context) -> bool:
         if (await ctx.bot.is_owner(ctx.author)) is False:
             destination = getattr(ctx.author.voice, 'channel', None)
@@ -89,7 +92,7 @@ def channel_check(*additional_channels: Tuple[Union[BigRLDChannelType, SmallRLDC
     -------
     commands.check
         The check
-    '''    
+    '''
     channel_types = (
         BigRLDChannelType.bot,
         SmallRLDChannelType.bot
@@ -120,7 +123,7 @@ def role_check(*roles: Tuple[Union[BigRLDRoleType, SmallRLDRoleType]]) -> comman
     -------
     commands.check
         The check
-    '''    
+    '''
     role_types = roles or (
         BigRLDRoleType.friends,
         SmallRLDRoleType.friends,
