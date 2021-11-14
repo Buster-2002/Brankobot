@@ -32,6 +32,7 @@ import time
 from collections import defaultdict
 from pathlib import Path
 from textwrap import dedent
+from typing import Optional
 
 import aiohttp
 import aiosqlite
@@ -269,7 +270,7 @@ class Events(commands.Cog):
 
     @tasks.loop(time=datetime.time(hour=7))
     async def check_birthdays(self):
-        '''Checks for birthdays every day at 07:00 UTC / 08:00 CET / 09:00 CEST'''
+        '''Checks for birthdays every day at 07:00 UTC / 08:00 CET / 09:00 CEST (winter)'''
         logger = logging.getLogger('brankobot')
         logger.info('Checking for birthdays...')
 
@@ -492,9 +493,10 @@ class Events(commands.Cog):
                         await self.bot.delete_reminder(reminder)
 
             # Removing birthday
-            birthday: Birthday = await self.bot.get_birthday(member.id)
-            if member.guild.id == birthday.server_id:
-                await self.bot.delete_birthday(member.id)
+            birthday = await self.bot.get_birthday(member.id)
+            if birthday:
+                if member.guild.id == birthday.server_id:
+                    await self.bot.delete_birthday(member.id)
 
         finally:
             await cursor.close()
