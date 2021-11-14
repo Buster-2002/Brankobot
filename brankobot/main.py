@@ -29,7 +29,7 @@ __title__ = 'Brankobot'
 __author__ = 'Buster#5741'
 __license__ = 'MIT'
 __copyright__ = 'Copyright 2021-present Buster'
-__version__ = '6.0.0'
+__version__ = '6.1.0'
 
 import asyncio
 import logging
@@ -192,16 +192,17 @@ class Context(commands.Context):
                     fields.append(('\u200b', '\u200b'))
 
             for field in fields:
-                try:
-                    inline = field[2]
-                except IndexError:
-                    inline = True
+                if field[1] not in {None, ''}:
+                    try:
+                        inline = field[2]
+                    except IndexError:
+                        inline = True
 
-                embed.add_field(
-                    name=str(field[0]),
-                    value=str(field[1]),
-                    inline=inline
-                )
+                    embed.add_field(
+                        name=str(field[0]),
+                        value=str(field[1]),
+                        inline=inline
+                    )
 
         if send is False:
             return embed
@@ -270,7 +271,7 @@ class Bot(commands.Bot):
             intents=discord.Intents(
                 guilds=True,          # get_channel, get_guild
                 members=True,         # on_member_join, on_member_remove, get_user, get_member, roles, nick
-                presences=True,       # Only used for offline command (Getting jocs status)
+                presences=True,       # member.status
                 guild_messages=True,  # on_message
                 guild_reactions=True, # For menus
                 voice_states=True,    # music
@@ -286,7 +287,8 @@ class Bot(commands.Bot):
             ),
             owner_ids={
                 159746057524346880, # marnik
-                764584777642672160  # buster
+                764584777642672160, # buster
+                563053141029945345
             }
         )
         self.BEEN_READY = False
