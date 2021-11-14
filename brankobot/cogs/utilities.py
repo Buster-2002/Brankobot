@@ -24,6 +24,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 '''
 
+from collections import Counter
 from difflib import get_close_matches
 from functools import partial
 from tempfile import TemporaryDirectory
@@ -34,12 +35,14 @@ import discord
 from discord.ext import commands
 from discord.ext.menus.views import ViewMenuPages
 from discord.utils import escape_markdown, format_dt
+from humanize import ordinal
+from humanize.filesize import naturalsize
 from youtube_dl.YoutubeDL import DownloadError, YoutubeDL
 
 from main import Bot, Context
 from .utils.checks import channel_check, is_moderator, role_check
 from .utils.converters import CommandNameCheck, ReminderConverter
-from .utils.enums import BigRLDRoleType, SmallRLDRoleType
+from .utils.enums import BigRLDRoleType, Emote, SmallRLDRoleType, try_enum
 from .utils.errors import (CommandDoesntExist, CommandExists,
                            InvalidCommandContent, NoCustomCommands,
                            NoReminders, NotCommandOwner, NotReminderOwner,
@@ -85,40 +88,153 @@ class Utilities(commands.Cog):
 
     @channel_check()
     @commands.cooldown(5, 60, commands.BucketType.guild)
-    @commands.command(aliases=['info'])
+    @commands.command(aliases=['server', 'guild', 'guildinfo'])
+    async def serverinfo(self, ctx: Context, server: discord.Guild = None):
+        '''Shows information about a server'''
+        guild = server or ctx.guild
+        owner = guild.owner.mention if guild.owner else 'No owner'
+        special_channels = [
+            (f'{Emote.voice_channel} AFK', guild.afk_channel),
+            (f'{Emote.text_channel} System', guild.system_channel),
+            (f'{Emote.rules} Rules', guild.rules_channel),
+            (f'{Emote.announcement} Updates', guild.public_updates_channel)
+        ]
+        if data := list(filter(lambda item: item[1] is not None, special_channels)):
+            special_channels = '\n'.join([f'{c[0]}: {c[1].mention}' for c in data])
+
+        members = dedent(f'''
+            {Emote.silhouette} Humans: {len([m for m in guild.members if m.bot is False])}
+            {Emote.robot} Bots: {len([m for m in guild.members if m.bot is True])}
+            {Emote.total} Total: {len(guild.members)}
+            {Emote.admin} Admins: {len([m for m in guild.members if m.public_flags.staff])}
+        ''')
+
+        status_counter = Counter([m.status for m in guild.members])
+        member_statuses = dedent(f'''
+            {Emote.online} Online: {status_counter.get(discord.Status.online, 0)}
+            {Emote.idle} Idle: {status_counter.get(discord.Status.idle, 0)}
+            {Emote.dnd} DND: {status_counter.get(discord.Status.dnd, 0)}
+            {Emote.offline} Offline: {status_counter.get(discord.Status.offline, 0)}
+        ''')
+
+        channel_counter = Counter([type(c).__name__ for c in guild.channels])
+        channels = dedent(f'''
+            {Emote.category_channel} Category: {channel_counter.get('CategoryChannel', 0)}
+            {Emote.text_channel} Text: {channel_counter.get('TextChannel', 0)}
+            {Emote.voice_channel} Voice: {channel_counter.get('VoiceChannel', 0)}
+            {Emote.stage_channel} Stage: {channel_counter.get('StageChannel', 0)}
+        ''')
+
+        subscribers = sorted(guild.premium_subscribers, key=lambda m: m.premium_since)
+        latest_sub = 'N/A'
+        if subscribers:
+            latest_sub = 'by ' + subscribers[-1].mention
+        boosts = dedent(f'''
+            {Emote.boost} Boosts: {guild.premium_subscription_count}
+            {try_enum(Emote, f'boost_{guild.premium_tier}')} Tier: {guild.premium_tier}
+            {Emote.role} Role: {guild.premium_subscriber_role or 'N/A'}
+            {Emote.silhouette} Latest: {latest_sub}
+        ''')
+
+        emotes = dedent(f'''
+            {Emote.blank_emoji} Static: {len([e for e in guild.emojis if e.animated is False])}
+            {Emote.blank_emoji_rotate} Animated: {len([e for e in guild.emojis if e.animated is True])}
+            {Emote.sticker} Stickers: {len(guild.stickers)}
+            {Emote.warning} Limit: {guild.emoji_limit}/{guild.sticker_limit}
+        ''')
+
+        fields = [
+            ('Name', guild.name),
+            ('Owner', f'{Emote.silhouette} {owner}'),
+            ('ID', f'{Emote.ID} {str(guild.id)[:10]}\n{str(guild.id)[10:]}'),
+
+            ('Created', f'{Emote.created} {format_dt(guild.created_at, "R")}'),
+            ('Roles', f'{Emote.role} {len(guild.roles)}'),
+            ('Region', f'{Emote.location} {str(guild.region).replace("-", " ").title()}'),
+
+            ('Filesize limit', f'{Emote.upload} {naturalsize(guild.filesize_limit)}'),
+            ('Content filter', f'{Emote.locked_channel} {str(guild.explicit_content_filter).replace("_", " ").title()}'),
+            ('Verification level', f'{Emote.verified} {str(guild.verification_level).title()}'),
+
+            ('Members', members),
+            ('Statuses', member_statuses),
+            ('Boosts', boosts),
+
+            ('Channels', channels),
+            ('Special channels', special_channels),
+            ('Emotes', emotes)
+        ]
+
+        await ctx.send_response(
+            guild.description or discord.Embed.Empty,
+            title='Server Info',
+            thumbnail=str(guild.icon) if guild.icon else discord.Embed.Empty,
+            image=str(guild.banner) if guild.banner else discord.Embed.Empty,
+            fields=fields
+        )
+
+
+    @channel_check()
+    @commands.cooldown(5, 60, commands.BucketType.guild)
+    @commands.command(aliases=['user', 'member', 'memberinfo'])
     async def userinfo(self, ctx: Context, user: Union[discord.Member, discord.User] = None):
-        '''Shows some user information about a member or user'''
+        '''Shows information about a server member or discord user'''
         user = user or ctx.author
-        status_emotes = {
-            str(discord.Status.offline): '⚫',
-            str(discord.Status.dnd): '🔴',
-            str(discord.Status.idle): '🟡'
-        }
-        desktop_status = status_emotes.get(str(user.desktop_status), '🟢')
-        web_status = status_emotes.get(str(user.web_status), '🟢')
-        mobile_status = status_emotes.get(str(user.mobile_status), '🟢')
         join_pos = sorted(ctx.guild.members, key=lambda m: m.joined_at).index(user) + 1
-        join_outof = len(ctx.guild.members)
         flags = ', '.join([n.replace('_', ' ').title() for n, v in list(user.public_flags) if v])
-        nick = user.display_name if user.display_name != user.name else None
-        activity = user.activity if not getattr(user.activity, 'application_id', False) else None
-        data = {
-            'Name#tag': str(user),
-            'ID': user.id,
-            'Nickname': nick,
-            'Joined': format_dt(user.joined_at, 'R'),
-            'Created': format_dt(user.created_at, 'R'),
-            'Join pos': f'{join_pos}th out of {join_outof} members' if join_pos else None,
-            'Top role': user.top_role.name,
-            'Status/activity': activity,
-            'Desktop': desktop_status,
-            'Web': web_status,
-            'Mobile': mobile_status,
-            'Flags': flags,
-            'thumbnail': user.display_avatar
+        nick = user.display_name if user.display_name != user.name else 'No nickname'
+        boosting_since = format_dt(user.premium_since, 'R') if user.premium_since else 'Not boosting'
+        mutual_guilds = ', '.join([g.name for g in user.mutual_guilds])
+        is_bot = 'no' if user.bot is False else 'yes'
+        is_afk, vc = 'no', None
+        if user.voice:
+            if vc := user.voice.channel:
+                if vc == ctx.guild.afk_channel:
+                    is_afk = 'yes'
+
+        # Don't show RPC activity by checking if an application ID is present
+        activity = user.activity if not getattr(user.activity, 'application_id', False) else 'No activity'
+        if user.guild_permissions == discord.Permissions.all():
+            permissions = 'All permissions (administrator)'
+        else:
+            permissions = ', '.join([p.replace('_', ' ').title() for p, v in list(user.guild_permissions) if v]) if user.guild_permissions != discord.Permissions.none() else 'No permissions'
+        roles = ', '.join([r.name for r in user.roles[1:]]) if user.roles[1:] else 'No roles'
+        status_emotes = {
+            discord.Status.offline: (Emote.offline, 'Offline'),
+            discord.Status.dnd: (Emote.dnd, 'DND'),
+            discord.Status.idle: (Emote.idle, 'Idle'),
+            discord.Status.online: (Emote.online, 'Online')
         }
-        des = '\n'.join([(f'**{k}:** {v}') for k, v in data.items() if v and k != 'thumbnail'])
-        await ctx.send_response(des, title='User Info', thumbnail=data.get('thumbnail'))
+        desktop_status = status_emotes.get(user.desktop_status)
+        web_status = status_emotes.get(user.web_status)
+        mobile_status = status_emotes.get(user.mobile_status)
+
+        fields = [
+            ('User', f'{Emote.silhouette} {user.mention}'),
+            ('Nickname', nick),
+            ('ID', f'{Emote.ID} {str(user.id)[:10]}\n{str(user.id)[10:]}'),
+
+            ('Created', f'{Emote.created} {format_dt(user.created_at, "R")}'),
+            ('Joined', f'{Emote.joined} {format_dt(user.joined_at, "R")} ({ordinal(join_pos)} out of {ctx.guild.member_count})'),
+            ('Bot / AFK', f'{Emote.robot} {is_bot} / {Emote.zzz} {is_afk}'),
+
+            ('Boosting', f'{Emote.boost} {boosting_since}'),
+            ('Mutual servers', f'{Emote.server_discovery} {mutual_guilds}'),
+            ('Voice', f'{Emote.voice_channel} {vc.mention if vc else "Not connected"}'),
+
+            ('Status', f'{desktop_status[0]} Desktop: {desktop_status[1]}\n{web_status[0]} Web: {web_status[1]}\n{mobile_status[0]} Mobile: {mobile_status[1]}'),
+            ('Activity', f'{Emote.activity} {activity}'),
+            ('Flags', f'{Emote.flags} {flags}'),
+            ('Permissions', f'{Emote.permission} {permissions}'),
+            ('Roles', f'{Emote.role} {roles}')
+        ]
+
+        await ctx.send_response(
+            title='User Info',
+            fields=fields,
+            thumbnail=str(user.display_avatar),
+            image=str(user.banner) if user.banner else discord.Embed.Empty
+        )
 
 
     @commands.group(
@@ -215,7 +331,7 @@ class Utilities(commands.Cog):
         msg = 'are you sure you want to remove this reminder?'
         reminder: Reminder = reminder_task['reminder']
         # Moderators can delete any reminder
-        if is_moderator(ctx):
+        if await is_moderator(ctx):
             msg = msg.rstrip('?')
             msg += f' belonging to {self.bot.get_user(reminder.creator_id)}?'
         else:
@@ -325,7 +441,7 @@ class Utilities(commands.Cog):
 
             msg = 'are you sure you want to remove this command?'
             # Moderators can delete any custom command
-            if is_moderator(ctx):
+            if await is_moderator(ctx):
                 msg = msg.rstrip('?')
                 msg += f' belonging to {self.bot.get_user(command.creator_id)}?'
             else:
