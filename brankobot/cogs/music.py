@@ -70,7 +70,6 @@ class YTDLSource(discord.PCMVolumeTransformer):
         self.duration = data.get('duration')
         self.view_count = data.get('view_count')
         self.likes = data.get('like_count')
-        self.dislikes = data.get('dislike_count')
         self.uploader = data.get('uploader')
         self.uploader_url = data.get('uploader_url')
         self.thumbnail = data.get('thumbnails', [{'url': None}])[0]['url']
@@ -94,7 +93,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
             data = data['entries'][0]
 
         msg = dedent(f'''
-            **Added:** [{data["title"]}]({data["webpage_url"]}) to music queue
+            **Added** [{data["title"]}]({data["webpage_url"]}) to music queue by {ctx.author.mention}
 
             *Use {ctx.prefix}queue for more info*
         ''')
@@ -116,7 +115,6 @@ class YTDLSource(discord.PCMVolumeTransformer):
                 'duration': data.get('duration'),
                 'view_count': data.get('view_count'),
                 'likes': data.get('like_count'),
-                'dislikes': data.get('dislike_count'),
                 'uploader': data.get('uploader'),
                 'uploader_url': data.get('uploader_url'),
                 'upload_date': datetime.strptime(data.get('upload_date'), '%Y%m%d'),
@@ -414,7 +412,7 @@ class Music(commands.Cog):
             ('Channel', f"[{source.uploader}]({source.uploader_url})"),
             ('Requested by', source.requester.mention),
             ('Views', intcomma(source.view_count)),
-            ('Likes/Dislikes', f"{intcomma(source.likes)}/{intcomma(source.dislikes)}"),
+            ('Likes', intcomma(source.likes)),
             ('Uploaded', discord.utils.format_dt(source.upload_date, 'R'))
         ]
         player.now_playing = await ctx.send_response(
