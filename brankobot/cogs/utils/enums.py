@@ -27,6 +27,9 @@ DEALINGS IN THE SOFTWARE.
 from enum import Enum
 from typing import Any
 
+from discord import activity, sticker
+from discord.ext.commands import flags
+
 
 def try_enum(cls: Any, value: Any, *, reverse_lookup: bool = False) -> Any:
     '''Tries to return cls Enum by value or key
@@ -194,10 +197,50 @@ class FrontType(_StrIsValue, Enum):
 
 
 class Emote(_StrIsValue, Enum):
-    # GENERAL
+    # OTHER
+    # General
     flushed_pumpkin    = '<:flushed_pumpkin:905125381475037195>'
     feels_birthday_man = '<:feels_birthday_man:905125599079702578>'
     loading            = '<a:loading:905516653931016252>'
+    robot              = '<:robot:909417198332821504>'
+    total              = '<:total:909417716358725722>'
+    admin              = '<:admin:909418535665676298>'
+    role               = '<:role:909426227692068895>'
+    blank_emoji        = '<:blank_image:909472641042247690>'
+    blank_emoji_rotate = '<a:blank_image_animated:909472644498333696>'
+    sticker            = '<:sticker:909473628565962782>'
+    warning            = '<:warning:909435123336888360>'
+    activity           = '<:activity:909460266117382265>'
+    joined             = '<:joined:909460862702583829>'
+    created            = '<:created:909470436193095700>'
+    server_discovery   = '<:serverdiscovery:909461849391648798>'
+    ID                 = '<:ID:909467880112939068>'
+    upload             = '<:upload:909465475489103872>'
+    locked_channel     = '<:locked_channel:909466533468713001>'
+    verified           = '<:verified:909467394706128896>'
+    location           = '<:location:909469267458654208>'
+    flags              = '<:flags:909474610150518794>'
+    permission         = '<:permission:909475661964537856>'
+    # Server nitro boosts
+    boost              = '<:boost:909421385284194335>'
+    boost_0            = '<:boost_0:909428181851844628>'
+    boost_1            = '<:boost_1:909423206643941416>'
+    boost_2            = '<:boost_2:909423815434567721>'
+    boost_3            = '<:boost_3:909423815552040960>'
+    # Statuses
+    online             = '<:online:909413169657692160>'
+    idle               = '<:idle:909413591139123241>'
+    dnd                = '<:dnd:909413590610628679>'
+    offline            = '<:offline:909413591562719322>'
+    # Channels
+    stage_channel      = '<:stage_channel:909397194409390100>'
+    text_channel       = '<:text_channel:909397194224848956>'
+    voice_channel      = '<:voice_channel:909397194312933396>'
+    category_channel   = '<:category_channel:909397193897672705>'
+    rules              = '<:rules:909419129214205962>'
+    announcement       = '<:announcement:909420582263734282>'
+    # Default
+    silhouette         = ':bust_in_silhouette:'
     cry                = ':cry:'
     joy                = ':joy:'
     heart              = ':heart:'
@@ -210,6 +253,7 @@ class Emote(_StrIsValue, Enum):
     monocle            = ':face_with_monocle:'
     tada               = ':tada:'
     cake               = ':birthday:'
+    zzz                = ':zzz:'
 
     # PLAYBAR
     start        = '<:start:904076967492595792>'
