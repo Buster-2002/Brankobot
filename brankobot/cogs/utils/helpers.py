@@ -41,7 +41,7 @@ def separate_capitals(word: str) -> str:
 
     Example
     -------
-    >>> separate_capitals("camelCaseWord")
+    >>> separate_capitals('camelCaseWord')
     'Camel Case Word'
 
     Parameters
@@ -104,40 +104,40 @@ class Loading:
         self._message: discord.Message = None
 
     @staticmethod
-    def _format_message(message: Optional[str]) -> str:
+    def _format_content(content: Optional[str]) -> str:
         '''Formats a message for the loader
 
         Parameters
         ----------
-        message : Optional[str]
-            The message text to format
+        content : Optional[str]
+            The message content to format
 
         Returns
         -------
         str
-            The message text + loading emote or just the loading emote
+            The message content + loading emote or just the loading emote
         '''
-        if message:
-            return f'{Emote.loading} {message}...'
-        return str(Emote.loading)
+        if content:
+            return f'{Emote.loading} {content}...'
+        return Emote.loading.value
 
-    async def update(self, message: Optional[str]) -> None:
+    async def update(self, content: Optional[str]) -> None:
         '''Updates the loading message content
 
         Parameters
         ----------
-        message : Optional[str]
+        content : Optional[str]
             The new content of the loading message
         '''
         with suppress(discord.HTTPException):
-            if self._message.content != message:
+            if self._message.content != content:
                 self._message = await self._message.edit(
-                    content=self._format_message(message),
+                    content=self._format_content(content),
                     allowed_mentions=discord.AllowedMentions(replied_user=False)
                 )
 
-    async def __aenter__(self) -> "Loading":
-        self._message = await self.ctx.reply(self._format_message(self.initial_message), mention_author=False)
+    async def __aenter__(self) -> 'Loading':
+        self._message = await self.ctx.reply(self._format_content(self.initial_message), mention_author=False)
         return self # Necessary to return instance for "as" statement
 
     async def __aexit__(self, exc_type: Any, exc: Exception, tb: TracebackType) -> None:
