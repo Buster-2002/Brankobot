@@ -209,7 +209,7 @@ class TankNotFound(WoTError):
 
 class NotARegion(WoTError):
     def __init__(self, region_argument: str):
-        self.region = region_argument
+        self.region_argument = region_argument
 
 
 # Other
