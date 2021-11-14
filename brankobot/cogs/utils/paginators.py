@@ -54,7 +54,7 @@ class MusicQueuePaginator(menus.ListPageSource):
             ('Channel', f"[{entry['uploader']}]({entry['uploader_url']})"),
             ('Requested by', entry['requester'].mention),
             ('Views', intcomma(entry['view_count'])),
-            ('Likes/Dislikes', f"{intcomma(entry['likes'])}/{intcomma(entry['dislikes'])}"),
+            ('Likes', intcomma(entry['likes'])),
             ('Uploaded', discord.utils.format_dt(entry['upload_date'], 'R'))
         ]
         embed = (await self.ctx.send_response(
