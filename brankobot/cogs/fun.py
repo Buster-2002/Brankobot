@@ -432,7 +432,6 @@ class Fun(commands.Cog):
     async def birthday(self, ctx: Context, birth_date: str):
         '''Registers your birthday for brankobot to sell on the dark web (and to congratulate)'''
         birth_date = dateparser.parse(birth_date, ['%d/%m/%Y', '%d-%m-%Y', '%-d %b, %Y'])
-
         cursor = await self.bot.CONN.cursor()
         try:
             # Check if user isn't already in database
@@ -464,6 +463,7 @@ class Fun(commands.Cog):
                 )
             )
             await self.bot.CONN.commit()
+
             next_birthday = get_next_birthday(birth_date)
             await ctx.send_response(
                 f'ok {Emote.monocle}, i will maybe wish you a happy **{ordinal(next_birthday.year - birth_date.year)}** birthday {format_dt(next_birthday, "R")}',
@@ -511,7 +511,7 @@ class Fun(commands.Cog):
         if not birthday:
             raise BirthdayDoesntExist(user)
 
-        if not is_moderator(ctx):
+        if not await is_moderator(ctx):
             raise NotAModerator()
 
         if not await ctx.confirm('are you sure?'):
@@ -556,7 +556,7 @@ class Fun(commands.Cog):
                 ])
                 msg = dedent(f'''
                     The average age in **{ctx.guild.name}** is {average_age:.2f} years.
-                    The oldest person is {naturaldelta(datetime.now() - max(dates))} old and the youngest is {naturaldelta(datetime.now() - min(dates))} old.
+                    The oldest person is {naturaldelta(today - min(dates))} old and the youngest is {naturaldelta(today - max(dates))} old.
                 ''')
                 await ctx.send_response(
                     msg,
