@@ -93,7 +93,7 @@ class WoT(commands.Cog):
 
         Parameters
         ----------
-        data : List[Image.Image]
+        images : List[Image.Image]
             A list of images to combine into one
         columns : int
             The amount of columns to fit all rows on
@@ -106,7 +106,7 @@ class WoT(commands.Cog):
             The combined image
         '''
         width, height = image_size
-        data = [images[i:i + columns] for i in range(0, len(images), columns)]
+        images = [images[i:i + columns] for i in range(0, len(images), columns)]
         combined = Image.new('RGB', (columns * width, len(images) * height), '#070906')
         for row_num, row in enumerate(images):
             for im_num, im in enumerate(row):
@@ -131,6 +131,7 @@ class WoT(commands.Cog):
         Returns
         -------
         Tuple[str, Tuple[int, int], int, int, int]
+            In order:
             Image size for herhor.net (Large, Medium Small),
             image size (width, height) (px),
             footer bar height (px),
@@ -256,7 +257,9 @@ class WoT(commands.Cog):
         Image.Image
             The Image found on the url
         '''
-        return Image.open(BytesIO(await (await self.bot.AIOHTTP_SESSION.get(url)).read()))
+        r = await self.bot.AIOHTTP_SESSION.get(url)
+        fp = await r.read()
+        return Image.open(BytesIO(fp))
 
 
     @alru_cache()
@@ -506,13 +509,36 @@ class WoT(commands.Cog):
             payload=payload,
             api_type=WotApiType.unofficial
         )
+        # I have to do this because for some unholy reason,
+        # the data here is a list of lists, instead of a mapping.
+        # Which isn't even all, no, they also randomly change the
+        # order of this data 😃
+        parsed_data = [
+            dict(zip(data['data']['parameters'], stats))
+            for stats in data['data']['data']
+        ]
 
         tank_stats = []
-        for stats in data['data']['data']:
-            tank = self.bot.search_tank(stats[1])
+        for stats in parsed_data:
+            tank = self.bot.search_tank(stats['tech_name'])
             tank_stats.append(TankStats(
-                *list(asdict(tank).values()),
-                *stats[-16:]
+                **asdict(tank),
+                total_kills=stats['frags_count'],
+                average_kills=stats['frags_per_battle_average'],
+                _mark=stats['marksOnGun'],
+                damage_dealt_received_ratio=stats['damage_dealt_received_ratio'],
+                wins_ratio=stats['wins_ratio'],
+                total_wins=stats['wins_count'],
+                total_hits=stats['hits_count'],
+                total_damage_received=stats['damage_received'],
+                _mastery=stats['markOfMastery'],
+                kills_deaths_ratio=stats['frags_deaths_ratio'],
+                total_damage=stats['damage_dealt'],
+                average_xp=stats['xp_per_battle_average'],
+                total_xp=stats['xp_amount'],
+                total_survived_battles=stats['survived_battles'],
+                total_battles=stats['battles_count'],
+                average_damage=stats['damage_per_battle_average']
             ))
 
         return tank_stats
