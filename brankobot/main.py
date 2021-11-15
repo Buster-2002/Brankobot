@@ -287,8 +287,7 @@ class Bot(commands.Bot):
             ),
             owner_ids={
                 159746057524346880, # marnik
-                764584777642672160, # buster
-                563053141029945345
+                764584777642672160  # buster
             }
         )
         self.BEEN_READY = False
