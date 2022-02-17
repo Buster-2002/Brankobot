@@ -180,7 +180,7 @@ class WoT(commands.Cog):
         Tuple[str, str]
             Tuple[str, str]: A readable representation of a clan log item
         '''
-        clan_tag = data.get('enemy_clan', {'tag': ''}).get('tag')
+        clan_tag = data.get('enemy_clan', {}).get('tag') or 'placeholder'
         opponent_clan = f'[{escape_markdown(clan_tag)}](https://wot-life.com/eu/clan/{clan_tag}/)'
         province_name = data.get('target_province', {}).get('name')
         province_alias = data.get('target_province', {}).get('alias')
@@ -442,6 +442,7 @@ class WoT(commands.Cog):
     async def _get_tank_stats(
         self,
         account_id: int,
+        region: Region,
         nations: List[str],
         types: List[str],
         tiers: List[str],
@@ -507,12 +508,12 @@ class WoT(commands.Cog):
             '/wotup/profile/vehicles/list/',
             method='POST',
             payload=payload,
-            api_type=WotApiType.unofficial
+            api_type=WotApiType.unofficial,
+            region=region
         )
         # I have to do this because for some unholy reason,
-        # the data here is a list of lists, instead of a mapping.
-        # Which isn't even all, no, they also randomly change the
-        # order of this data 😃
+        # the data here is a list of lists and not a mapping.
+        # They also randomly change the order of this data 😃
         parsed_data = [
             dict(zip(data['data']['parameters'], stats))
             for stats in data['data']['data']
@@ -718,6 +719,7 @@ class WoT(commands.Cog):
                 lambda item: item.mark is not MarkType.no_mark,
                 await self._get_tank_stats(
                     player.id,
+                    player_region,
                     nations,
                     types,
                     tiers
@@ -781,6 +783,7 @@ class WoT(commands.Cog):
             player = await self._search_player(player_search, player_region)
             data = await self._get_tank_stats(
                 player.id,
+                player_region,
                 nations,
                 types,
                 tiers,
@@ -833,7 +836,7 @@ class WoT(commands.Cog):
     @commands.cooldown(1, 10, commands.BucketType.user)
     @commands.command(
         aliases=['moe', 'reqs', 'marks'],
-        usage='<tank_search> [region: eu] [moedays: 10 (days to graph moe history for)]'
+        usage='<tank_search (input names with spaces should be surrounded with quotes: ")> [region: eu] [moedays: 10 (days to graph moe history for)]'
     )
     async def requirements(self, ctx: Context, tank_search: str, *, flags: RequirementsFlags):
         '''Retrieves information about moe/mastery/expected values and more'''
@@ -1371,7 +1374,7 @@ class WoT(commands.Cog):
                 ))
 
             # Paginating clanlogs
-            description = '*Times are in GMT + 2 / CET*'
+            description = '*Times are in CET*'
             pages = ViewMenuPages(
                 source=ClanWarsPaginator(
                     data_formatted,
@@ -1446,7 +1449,7 @@ class WoT(commands.Cog):
             # Paginating battles
             description = dedent(f'''
                 **Total battles:** {total_battles}
-                *Times are in GMT + 2 / CET*
+                *Times are in CET*
             ''')
             pages = ViewMenuPages(
                 source=ClanWarsPaginator(
@@ -1459,110 +1462,112 @@ class WoT(commands.Cog):
             )
             await pages.start(ctx)
 
-    @cw.command('rewards', aliases=['accstatus', 'status'])
-    async def cw_rewards(self, ctx: Context, player_search: str):
-        '''Shows some data about your account, including current rewards in CW'''
-        async with ctx.typing():
-            player = await self._search_player(player_search, Region.eu)
-            event = await self._get_current_campaign()
-            front_id = event.fronts[0].id
+    # COMMAND DOESNT WORK BECAUSE WOT API JUST SENDS BACK EMPTY RESULTS LOL
+    # {'award_level': None, 'account_id': 500600567, 'clan_rank': None, 'rank_delta': None, 'fame_points_to_improve_award': None, 'updated_at': None, 'battles': 0, 'event_id': 'confrontation', 'clan_id': None, 'rank': None, 'fame_points_since_turn': 0, 'url': None, 'battles_to_award': 0, 'fame_points': 0, 'front_id': 'confrontation_bg'}
+    # @cw.command('rewards', aliases=['accstatus', 'status'])
+    # async def cw_rewards(self, ctx: Context, player_search: str):
+    #     '''Shows some data about your account, including current rewards in CW'''
+    #     async with ctx.typing():
+    #         player = await self._search_player(player_search, Region.eu)
+    #         event = await self._get_current_campaign()
+    #         front_id = event.fronts[0].id
 
-            # Player information
-            data = await self.bot.wot_api(
-                '/wot/globalmap/eventaccountinfo/',
-                params={
-                    'account_id': player.id,
-                    'event_id': event.id,
-                    'front_id': front_id
-                }
-            )
-            player_data = data['data'][str(player.id)]['events'][event.id][0]
-            clan_id = player_data['clan_id']
+    #         # Player information
+    #         data = await self.bot.wot_api(
+    #             '/wot/globalmap/eventaccountinfo/',
+    #             params={
+    #                 'account_id': player.id,
+    #                 'event_id': event.id,
+    #                 'front_id': front_id
+    #             }
+    #         )
+    #         player_data = data['data'][str(player.id)]['events'][event.id][0]
+    #         clan_id = player_data['clan_id']
 
-            # Clan information
-            data = await self.bot.wot_api(
-                '/wot/globalmap/eventclaninfo/',
-                params={
-                    'clan_id': clan_id,
-                    'event_id': event.id,
-                    'front_id': front_id
-                }
-            )
-            clan_data = data['data'][str(clan_id)]['events'][event.id][0]
+    #         # Clan information
+    #         data = await self.bot.wot_api(
+    #             '/wot/globalmap/eventclaninfo/',
+    #             params={
+    #                 'clan_id': clan_id,
+    #                 'event_id': event.id,
+    #                 'front_id': front_id
+    #             }
+    #         )
+    #         clan_data = data['data'][str(clan_id)]['events'][event.id][0]
 
-            # Get player rewards
-            data = await self.bot.wot_api(
-                '/en/clanwars/rating/alley/users/search/byaccount/',
-                params={
-                    'event_id': event.id,
-                    'front_id': front_id,
-                    'page': 0,
-                    'page_size': 1,
-                    'user': player.nickname
-                },
-                api_type=WotApiType.unofficial
-            )
+    #         # Get player rewards
+    #         data = await self.bot.wot_api(
+    #             '/en/clanwars/rating/alley/users/search/byaccount/',
+    #             params={
+    #                 'event_id': event.id,
+    #                 'front_id': front_id,
+    #                 'page': 0,
+    #                 'page_size': 1,
+    #                 'user': player.nickname
+    #             },
+    #             api_type=WotApiType.unofficial
+    #         )
 
-            for dic in data['accounts_ratings']:
-                if dic['name'] == player.nickname:
-                    player_reward_data = dic
-                    clan_tag = player_reward_data['clan']['tag']
+    #         for dic in data['accounts_ratings']:
+    #             if dic['name'] == player.nickname:
+    #                 player_reward_data = dic
+    #                 clan_tag = player_reward_data['clan']['tag']
 
-            # Get clan rewards
-            data = await self.bot.wot_api(
-                '/en/clanwars/rating/alley/clans/search/',
-                params={
-                    'event_id': event.id,
-                    'front_id': front_id,
-                    'page': 0,
-                    'page_size': 1,
-                    'clan': clan_tag
-                },
-                api_type=WotApiType.unofficial
-            )
+    #         # Get clan rewards
+    #         data = await self.bot.wot_api(
+    #             '/en/clanwars/rating/alley/clans/search/',
+    #             params={
+    #                 'event_id': event.id,
+    #                 'front_id': front_id,
+    #                 'page': 0,
+    #                 'page_size': 1,
+    #                 'clan': clan_tag
+    #             },
+    #             api_type=WotApiType.unofficial
+    #         )
 
-            for dic in data['clans_ratings']:
-                if dic['clan_tag'] == clan_tag:
-                    clan_reward_data = dic
+    #         for dic in data['clans_ratings']:
+    #             if dic['clan_tag'] == clan_tag:
+    #                 clan_reward_data = dic
 
-            player_rank_trend = self._get_trend(player_data['rank_delta'])
-            clan_rank_trend = self._get_trend(clan_data['rank_delta'])
-            fields = []
-            fields.append((
-                player.nickname,
-                dedent(f'''
-                    **Rank:** {player_data['rank']}
-                    **Trend:** {player_rank_trend}
-                    **Fame points:** {intcomma(player_data['fame_points'])}
-                    **Battles:** {player_data['battles']}
-                    **Fame points for improved reward:** {intcomma(player_reward_data['fame_points_to_improve_award'])}
-                ''')
-            ))
-            fields.append((
-                escape_markdown(clan_tag),
-                dedent(f'''
-                    **Rank:** {player_data['clan_rank']}
-                    **Trend:** {clan_rank_trend}
-                    **Fame points:** {intcomma(clan_data['fame_points'])}
-                    **Battles/winrate:** {clan_data['battles']}/{(clan_data['wins'] / clan_data['battles'] * 100):.2f}%
-                    **Fame points for improved reward:** {intcomma(clan_reward_data['fame_points_to_improve_award'])}
-                ''')
-            ))
-            fields.append((
-                'Player Rewards',
-                '\n'.join([(f'**{d["reward_type"].replace("_", " ").title()}:** {d["value"]}') for d in player_reward_data['rewards']]) if player_reward_data['rewards'] else 'N/A'
-            ))
-            fields.append((
-                'Clan Rewards',
-                '\n'.join([(f'**{d["reward_type"].replace("_", " ").title()}:** {d["value"]}') for d in clan_reward_data['rewards']]) if clan_reward_data['rewards'] else 'N/A'
-            ))
+    #         player_rank_trend = self._get_trend(player_data['rank_delta'])
+    #         clan_rank_trend = self._get_trend(clan_data['rank_delta'])
+    #         fields = []
+    #         fields.append((
+    #             player.nickname,
+    #             dedent(f'''
+    #                 **Rank:** {player_data['rank']}
+    #                 **Trend:** {player_rank_trend}
+    #                 **Fame points:** {intcomma(player_data['fame_points'])}
+    #                 **Battles:** {player_data['battles']}
+    #                 **Fame points for improved reward:** {intcomma(player_reward_data['fame_points_to_improve_award'])}
+    #             ''')
+    #         ))
+    #         fields.append((
+    #             escape_markdown(clan_tag),
+    #             dedent(f'''
+    #                 **Rank:** {player_data['clan_rank']}
+    #                 **Trend:** {clan_rank_trend}
+    #                 **Fame points:** {intcomma(clan_data['fame_points'])}
+    #                 **Battles/winrate:** {clan_data['battles']}/{(clan_data['wins'] / clan_data['battles'] * 100):.2f}%
+    #                 **Fame points for improved reward:** {intcomma(clan_reward_data['fame_points_to_improve_award'])}
+    #             ''')
+    #         ))
+    #         fields.append((
+    #             'Player Rewards',
+    #             '\n'.join([(f'**{d["reward_type"].replace("_", " ").title()}:** {d["value"]}') for d in player_reward_data['rewards']]) if player_reward_data['rewards'] else 'N/A'
+    #         ))
+    #         fields.append((
+    #             'Clan Rewards',
+    #             '\n'.join([(f'**{d["reward_type"].replace("_", " ").title()}:** {d["value"]}') for d in clan_reward_data['rewards']]) if clan_reward_data['rewards'] else 'N/A'
+    #         ))
 
-            await ctx.send_response(
-                f'Last updated {format_dt(datetime.fromtimestamp(player_data["updated_at"]), "R")}',
-                title='GM Status',
-                fields=fields,
-                url=f'https://worldoftanks.eu/en/clanwars/rating/alley/#wot&aof_front={event.id}&aof_rating=accounts&aof_filter=search_acc&aof_str={player_search}&aof_page=0&aof_size=1',
-            )
+    #         await ctx.send_response(
+    #             f'Last updated {format_dt(datetime.fromtimestamp(player_data["updated_at"]), "R")}',
+    #             title='GM Status',
+    #             fields=fields,
+    #             url=f'https://worldoftanks.eu/en/clanwars/rating/alley/#wot&aof_front={event.id}&aof_rating=accounts&aof_filter=search_acc&aof_str={player_search}&aof_page=0&aof_size=1',
+    #         )
 
     @cw.command('provinces', aliases=['prov'])
     async def cw_provinces(self, ctx: Context, clan_search: str = '-RLD-'):
@@ -1604,7 +1609,7 @@ class WoT(commands.Cog):
             description = dedent(f'''
                 **Total provinces:** {len(data)}
                 **Daily income:** {total_income} gold
-                *Times are in GMT + 2 / CET*
+                *Times are in CET*
             ''')
             pages = ViewMenuPages(
                 source=ClanWarsPaginator(
