@@ -40,6 +40,7 @@ from humanize import intcomma, naturalsize, precisedelta
 
 from main import __version__ as botversion, Bot, Context
 from .utils.checks import channel_check, role_check
+from .utils.enums import BigRLDRoleType, SmallRLDRoleType
 
 
 class Misc(commands.Cog):
@@ -49,7 +50,7 @@ class Misc(commands.Cog):
         self.bot: Bot = bot
 
 
-    @commands.has_permissions(manage_messages=True)
+    @role_check(BigRLDRoleType.xo, SmallRLDRoleType.xo, BigRLDRoleType.po, SmallRLDRoleType.po, BigRLDRoleType.ro, SmallRLDRoleType.ro)
     @commands.command()
     async def cleanup(self, ctx: Context, limit: int = 100):
         '''Deletes bot messages in current channel'''

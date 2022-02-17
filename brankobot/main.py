@@ -29,10 +29,9 @@ __title__ = 'Brankobot'
 __author__ = 'Buster#5741'
 __license__ = 'MIT'
 __copyright__ = 'Copyright 2021-present Buster'
-__version__ = '6.2.0'
+__version__ = '6.1.1'
 
 import asyncio
-import json
 import logging
 import os
 import sys
