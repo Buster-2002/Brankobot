@@ -534,9 +534,7 @@ class Events(commands.Cog):
 
         Actions
         -------
-        * Handles error by sending message with information'''
-        raise error
-        
+        * Handles error by sending message with information'''        
         if ctx.command:
             ctx.command.reset_cooldown(ctx)
 
