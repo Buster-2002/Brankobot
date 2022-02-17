@@ -29,9 +29,10 @@ __title__ = 'Brankobot'
 __author__ = 'Buster#5741'
 __license__ = 'MIT'
 __copyright__ = 'Copyright 2021-present Buster'
-__version__ = '6.1.0'
+__version__ = '6.2.0'
 
 import asyncio
+import json
 import logging
 import os
 import sys
@@ -654,6 +655,11 @@ class Bot(commands.Bot):
                 raise ApiError(
                     error['code'],
                     error['message']
+                )
+            elif error := json_data.get('error_msg'):
+                raise ApiError(
+                    404,
+                    error
                 )
 
             return json_data
