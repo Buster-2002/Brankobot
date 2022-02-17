@@ -32,7 +32,6 @@ import time
 from collections import defaultdict
 from pathlib import Path
 from textwrap import dedent
-from typing import Optional
 
 import aiohttp
 import aiosqlite
@@ -440,11 +439,11 @@ class Events(commands.Cog):
         Actions
         -------
         * Brankobot will send a welcoming message if
-          that server is small or big RLD Discord.
+          that server is small or big RLD Discord and
+          the account is at least 30 days old.
         '''
-        logger = logging.getLogger('brankobot')
-        logger.info(f'"{member}" joined "{member.guild}"; sending welcome message...')
         guild = member.guild
+        account_age = datetime.datetime.utcnow() - member.created_at
         channel_id = None
 
         if guild.id == GuildType.big_rld.value:
@@ -453,9 +452,12 @@ class Events(commands.Cog):
             channel_id = SmallRLDChannelType.general.value
 
         if channel_id:
-            channel = self.bot.get_channel(channel_id)
-            response = random.choices(*zip(*self._join_responses.items()))[0]
-            await channel.send(response.format(member.mention))
+            if account_age > datetime.timedelta(days=30):
+                logger = logging.getLogger('brankobot')
+                logger.info(f'"{member}" joined "{member.guild}"; sending welcome message...')
+                channel = self.bot.get_channel(channel_id)
+                response = random.choices(*zip(*self._join_responses.items()))[0]
+                await channel.send(response.format(member.mention))
 
 
     @commands.Cog.listener()
@@ -533,6 +535,8 @@ class Events(commands.Cog):
         Actions
         -------
         * Handles error by sending message with information'''
+        raise error
+        
         if ctx.command:
             ctx.command.reset_cooldown(ctx)
 
