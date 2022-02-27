@@ -28,6 +28,7 @@ import datetime
 import json
 import logging
 import random
+import re
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -42,8 +43,9 @@ from discord.message import MessageReference
 from discord.utils import format_dt
 from humanize import naturaldelta
 from humanize.number import ordinal
+from main import Bot, Context
+from main import __version__ as botversion
 
-from main import __version__ as botversion, Bot, Context
 from .utils.enums import (BigRLDChannelType, Emote, GuildType,
                           SmallRLDChannelType, try_enum)
 from .utils.errors import *
@@ -56,6 +58,7 @@ class Events(commands.Cog):
     def __init__(self, bot):
         self.bot: Bot = bot
         self.counter = 0
+        self.url_regex = re.compile(r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))")
         # Custom commands can be used 10 times every 60 seconds on a per guild basis
         self.custom_command_cooldown = commands.CooldownMapping.from_cooldown(
             rate=10,
@@ -355,6 +358,7 @@ class Events(commands.Cog):
 
         Actions
         -------
+        * remove links if someone without roles posts one
         * react if mentioned
         * send custom command content if its found, and increment its usage by 1
         * send message content if it is the same 4x in a row
@@ -364,11 +368,16 @@ class Events(commands.Cog):
         author = message.author
 
         # Ignore ourselves in messages
-        if message.author == self.bot.user or self.bot.BEEN_READY is False:
+        if author == self.bot.user or self.bot.BEEN_READY is False:
             return
 
+        # Remove links if necessary
+        if len(author.roles) == 1:
+            if self.url_regex.search(content) is not None:
+                await message.delete()
+
         # React to being mentioned
-        if self.bot.user in message.mentions:
+        elif self.bot.user in message.mentions:
             response = (random.choices(*zip(*self._mention_responses.items()))[0]).format(author.mention)
             await channel.send(response)
 
