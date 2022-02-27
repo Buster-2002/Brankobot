@@ -1366,7 +1366,7 @@ class WoT(commands.Cog):
             # Formatting clanlogs
             data_formatted = []
             for dic in log_data:
-                dt = format_dt(datetime.strptime(dic['created_at'], '%Y-%m-%d %H:%M:%S.%f') + timedelta(hours=2), 'R')
+                dt = format_dt(datetime.strptime(dic['created_at'], '%Y-%m-%d %H:%M:%S.%f'), 'R')
                 emote, message = self._format_clan_log(dic)
                 data_formatted.append((
                     f'{emote} {dt}',
