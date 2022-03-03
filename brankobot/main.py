@@ -29,7 +29,7 @@ __title__ = 'Brankobot'
 __author__ = 'Buster#5741'
 __license__ = 'MIT'
 __copyright__ = 'Copyright 2021-present Buster'
-__version__ = '6.1.1'
+__version__ = '6.1.2'
 
 import asyncio
 import logging
@@ -325,6 +325,8 @@ class Bot(commands.Bot):
             The error message replying to the message that caused the error
         '''
         exception_type, error, traceback = sys.exc_info()
+
+        raise error
         if event == 'on_message':
             message = args[0]
             if isinstance(error, commands.CommandOnCooldown):
