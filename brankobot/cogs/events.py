@@ -24,6 +24,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 '''
 
+import asyncio
 import datetime
 import json
 import logging
@@ -59,6 +60,7 @@ class Events(commands.Cog):
         self.bot: Bot = bot
         self.counter = 0
         self.url_regex = re.compile(r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))")
+        self.twitter_url_regex = re.compile(r"https?:\/\/twitter\.com\/(?:#!\/)?(\w+)\/status(?:es)?\/(\d+)(?:\/.*)?")
         # Custom commands can be used 10 times every 60 seconds on a per guild basis
         self.custom_command_cooldown = commands.CooldownMapping.from_cooldown(
             rate=10,
@@ -360,6 +362,7 @@ class Events(commands.Cog):
         -------
         * remove links if someone without roles posts one
         * react if mentioned
+        * send fixed links for twitter embeds
         * send custom command content if its found, and increment its usage by 1
         * send message content if it is the same 4x in a row
         '''
@@ -375,6 +378,24 @@ class Events(commands.Cog):
         if len(author.roles) == 1:
             if self.url_regex.search(content) is not None:
                 await message.delete()
+
+        # Resend twitter status with new website that has a embed that works (fxtwitter)
+        elif matches := self.twitter_url_regex.findall(content):
+            formatted = [f'https://fxtwitter.com/{handle}/status/{status_id}' for handle, status_id in matches]
+            message = await message.reply(f'Working (video) embed{"s"[:len(formatted)^1]} (react with ❌ to delete this message):\n' + '\n'.join(formatted), mention_author=False)
+
+            # Delete reacted message if author of original reacts with ❌
+            await message.add_reaction('❌')
+            try:
+                await self.bot.wait_for(
+                    'reaction_add',
+                    check=lambda r, u: u == author and str(r) == '❌' and r.message == message,
+                    timeout=30
+                )
+                await message.delete()
+
+            except asyncio.TimeoutError:
+                await message.remove_reaction('❌', self.bot.user)
 
         # React to being mentioned
         elif self.bot.user in message.mentions:
@@ -543,7 +564,7 @@ class Events(commands.Cog):
 
         Actions
         -------
-        * Handles error by sending message with information'''        
+        * Handles error by sending message with information'''
         if ctx.command:
             ctx.command.reset_cooldown(ctx)
 
