@@ -77,6 +77,10 @@ class RegionConverter(commands.Converter):
             ['ru', 'russia', 'rf', 'russian_federation'],
             Region.ru
         ))
+        region_map.update(dict.fromkeys(
+            ['sg', 'asia', 'eastern_hemisphere', 'orient'],
+            Region.asia
+        ))
 
         region = region_map.get(argument, None)
         if not region:
