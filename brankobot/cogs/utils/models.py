@@ -78,7 +78,7 @@ class Reminder:
     @property
     def created_at(self) -> datetime:
         return datetime.fromtimestamp(self.creation_timestamp)
-    
+
     @property
     def ends_at(self) -> datetime:
         return datetime.fromtimestamp(self.end_timestamp)
@@ -201,12 +201,16 @@ class Tank:
         return try_enum(FormattedNationType, self.nation)
 
     @property
+    def nation_emote(self):
+        return try_enum(Emote, self.nation)
+
+    @property
     def tank_summary(self):
         return f'*The {self.short_name} is a tier {self.tier}{" reward " if self.is_reward else " premium " if self.is_premium else " collectors " if self.is_collector else " "}{self.formatted_type} from {self.formatted_nation}.*'
 
 
 @dataclass
-class TankStats(Tank):   
+class TankStats(Tank):
     total_kills: int
     average_kills: float
     _mark: int
@@ -242,4 +246,3 @@ class TankStats(Tank):
         if self.tier > 4:
             return f'https://herhor.net/wot/moe/original/marks/{self.nation}_{self._mark}.png'
         return None
-
