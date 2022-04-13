@@ -150,7 +150,7 @@ class Utilities(commands.Cog):
 
             ('Created', f'{Emote.created} {format_dt(guild.created_at, "R")}'),
             ('Roles', f'{Emote.role} {len(guild.roles)}'),
-            ('Region', f'{Emote.location} {str(guild.region).replace("-", " ").title()}'),
+            ('Locale', f'{Emote.location} {str(guild.preferred_locale)}'),
 
             ('Filesize limit', f'{Emote.upload} {naturalsize(guild.filesize_limit)}'),
             ('Content filter', f'{Emote.locked_channel} {str(guild.explicit_content_filter).replace("_", " ").title()}'),
@@ -166,10 +166,10 @@ class Utilities(commands.Cog):
         ]
 
         await ctx.send_response(
-            guild.description or discord.Embed.Empty,
+            guild.description,
             title='Server Info',
-            thumbnail=str(guild.icon) if guild.icon else discord.Embed.Empty,
-            image=str(guild.banner) if guild.banner else discord.Embed.Empty,
+            thumbnail=guild.icon,
+            image=guild.banner,
             fields=fields
         )
 
@@ -233,7 +233,7 @@ class Utilities(commands.Cog):
             title='User Info',
             fields=fields,
             thumbnail=str(user.display_avatar),
-            image=str(user.banner) if user.banner else discord.Embed.Empty
+            image=user.banner
         )
 
 
@@ -605,5 +605,5 @@ class Utilities(commands.Cog):
         finally:
             await cursor.close()
 
-def setup(bot):
-    bot.add_cog(Utilities(bot))
+async def setup(bot):
+    await bot.add_cog(Utilities(bot))
