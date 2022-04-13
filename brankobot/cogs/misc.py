@@ -116,10 +116,10 @@ class Misc(commands.Cog):
     @commands.command(hidden=True)
     async def reload(self, ctx: Context, module: str = None):
         if module:
-            self.bot.reload_extension(module)
+            await self.bot.reload_extension(module)
         else:
             for cog in list(self.bot.cogs.values()):
-                self.bot.reload_extension(cog.__module__)
+                await self.bot.reload_extension(cog.__module__)
 
         await ctx.send(f'Reloaded {module or "all modules"}')
 
@@ -161,5 +161,5 @@ class Misc(commands.Cog):
         finally:
             await cursor.close()
 
-def setup(bot):
-    bot.add_cog(Misc(bot))
+async def setup(bot):
+    await bot.add_cog(Misc(bot))
