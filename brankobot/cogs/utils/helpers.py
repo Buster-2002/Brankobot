@@ -28,7 +28,7 @@ import datetime
 import re
 from contextlib import suppress
 from types import TracebackType
-from typing import Iterable, Optional, Any
+from typing import Iterable, Optional, Any, List
 
 import discord
 from discord.ext import commands
@@ -103,6 +103,7 @@ class Loading:
         self.initial_message: Optional[str] = initial_message
         self._message: discord.Message = None
 
+
     @staticmethod
     def _format_content(content: Optional[str]) -> str:
         '''Formats a message for the loader
@@ -121,6 +122,7 @@ class Loading:
             return f'{Emote.loading} {content}...'
         return Emote.loading.value
 
+
     async def update(self, content: Optional[str]) -> None:
         '''Updates the loading message content
 
@@ -136,9 +138,11 @@ class Loading:
                     allowed_mentions=discord.AllowedMentions(replied_user=False)
                 )
 
+
     async def __aenter__(self) -> 'Loading':
         self._message = await self.ctx.reply(self._format_content(self.initial_message), mention_author=False)
         return self # Necessary to return instance for "as" statement
+
 
     async def __aexit__(self, exc_type: Any, exc: Exception, tb: TracebackType) -> None:
         with suppress(discord.HTTPException, AttributeError):
@@ -150,6 +154,7 @@ class ConfirmUI(discord.ui.View):
         super().__init__(timeout=timeout)
         self.value: bool = None
 
+
     @discord.ui.button(
         label='Confirm',
         style=discord.ButtonStyle.green,
@@ -159,12 +164,33 @@ class ConfirmUI(discord.ui.View):
         self.value = True
         self.stop()
 
+
     @discord.ui.button(
         label='Cancel',
         style=discord.ButtonStyle.red,
         emoji='✖️'
     )
     async def cancel(self, button: discord.ui.Button, interaction: discord.Interaction):
-        await interaction.response.send_message('no? alright, cancelled operation', ephemeral=True)
+        await interaction.response.send_message('no? alright; cancelled operation', ephemeral=True)
         self.value = False
         self.stop()
+
+
+class Dropdown(discord.ui.Select):
+    def __init__(self, placeholder: str, options: List[str], emotes: List[str]):
+        super().__init__(
+            placeholder=placeholder,
+            min_values=1,
+            max_values=1,
+            options=[discord.SelectOption(label=option, emoji=emote) for option, emote in zip(options, emotes)]
+        )
+
+
+    async def callback(self, interaction: discord.Interaction):
+        self.view.stop()
+
+
+class DropdownUI(discord.ui.View):
+    def __init__(self, placeholder: str, options: List[str], emotes: List[str]):
+        super().__init__()
+        self.add_item(Dropdown(placeholder, options, emotes))
