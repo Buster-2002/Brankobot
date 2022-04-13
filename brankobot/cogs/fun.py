@@ -390,11 +390,8 @@ class Fun(commands.Cog):
     @commands.command(aliases=['chief', 'chieftain'], hidden=True)
     @commands.cooldown(1, 300, commands.BucketType.guild)
     async def outside(self, ctx: Context):
-        '''30% chance of responding with h7's outside mp3'''
-        if random.ranrange(0, 101) > 70:
-            await ctx.send(file=discord.File(str(Path('assets/audio/h7_outside.mp3'))))
-        else:
-            await ctx.message.add_reaction(Emote.shush)
+        '''Chieftains, outside outside outˢᶦᵈᵉ'''
+        await ctx.send(file=discord.File(str(Path('assets/audio/h7_outside.mp3'))))
 
 
     @role_check()
@@ -601,5 +598,5 @@ class Fun(commands.Cog):
         await ctx.send_response(self._format_joke(r))
 
 
-def setup(bot):
-    bot.add_cog(Fun(bot))
+async def setup(bot):
+    await bot.add_cog(Fun(bot))
