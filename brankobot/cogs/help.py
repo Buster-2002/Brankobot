@@ -43,7 +43,7 @@ class NewHelpCommand(commands.HelpCommand):
                 SmallRLDChannelType.bot.value,
                 764801756680290335,
                 859739694635679794,
-                869681728170639391
+                963752302475370496
             }]
         })
 
@@ -143,6 +143,8 @@ class NewHelpCommand(commands.HelpCommand):
         title = f'Brankobot | Help > {command.cog_name} > {f"{command.parent} > " if command.parent else ""}{command.name}'
         aliases = ', '.join(command.aliases) or 'This command doesn\'t have any aliases'
         usage = command.signature or 'This command doesn\'t take any arguments'
+        cd = command.cooldown
+        cooldown = f'{cd.rate} use{"s"[:cd.rate^1]} per {int(cd.per)}s' if cd else 'This command doesn\'t have a cooldown'
         msg = dedent(f'''
             *Arguments in between <> are required, arguments in between [] have a default value*
 
@@ -150,6 +152,7 @@ class NewHelpCommand(commands.HelpCommand):
 
             **Usage:** {usage}
             **Aliases:** {aliases}
+            **Cooldown:** {cooldown}
             **Limited to roles:** {roles}
             **Limited to channels:** {channels}
         ''').strip()
@@ -165,5 +168,6 @@ class Help(commands.Cog):
     def __init__(self, bot):
         bot.help_command = NewHelpCommand()
 
-def setup(bot):
-    bot.add_cog(Help(bot))
+
+async def setup(bot):
+    await bot.add_cog(Help(bot))
