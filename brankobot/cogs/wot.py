@@ -56,7 +56,7 @@ from .utils.enums import (BigRLDChannelType, Emote, EventStatusType, FrontType,
 from .utils.errors import (ApiError, ClanNotFound, InvalidClan, InvalidFlags,
                            InvalidNickname, NoMoe, PlayerNotFound, ReplayError)
 from .utils.flags import MarkCollageFlags, RequirementsFlags, TankStatFlags
-from .utils.helpers import separate_capitals
+from .utils.helpers import separate_capitals, DropdownUI
 from .utils.models import (Achievement, Clan, GlobalmapEvent, GlobalMapFront,
                            Player, Tank, TankStats)
 from .utils.paginators import (ClanWarsPaginator, ReplayPaginator,
@@ -89,7 +89,7 @@ class WoT(commands.Cog):
 
     @staticmethod
     def _combine_images(images: List[Image.Image], columns: int, image_size: Tuple[int]) -> Image.Image:
-        '''Combines a list of equal sized Image into one image collage
+        '''Combines a list of equal sized Image into one image mosaic
 
         Parameters
         ----------
@@ -367,7 +367,7 @@ class WoT(commands.Cog):
         Returns
         -------
         discord.File
-            The image collage of all marks
+            The image mosaic of all marks
         '''
         total_3_marks: int = sum([item.mark is MarkType.third_mark for item in data])
         total_2_marks: int = sum([item.mark is MarkType.second_mark for item in data])
@@ -395,7 +395,10 @@ class WoT(commands.Cog):
                 last_nation = tank_stats.nation
 
             # Get images
-            tank_image = (await self._get_image_from_url(tank_stats.full_tank_image(string_size))).convert('RGBA')
+            try:
+                tank_image = (await self._get_image_from_url(tank_stats.full_tank_image(string_size))).convert('RGBA')
+            except:
+                tank_image = (await self._get_image_from_url(f'https://herhor.net/wot/moe/prepared/{string_size}/tanks/1.png')).convert('RGBA')
             transparent_mark_image = (await self._get_image_from_url(tank_stats.mark_image_url)).convert('RGBA')
 
             # Make mark image background black
@@ -659,7 +662,7 @@ class WoT(commands.Cog):
                 temp_file.write(await replay_file.read())
 
                 # Extract replay info
-                await loader.update('Extracting')
+                await loader.update('Extracting data')
                 try:
                     replay = ReplayData(temp_file.name)
                     if not replay.replay.battle_data:
@@ -705,7 +708,7 @@ class WoT(commands.Cog):
         usage='<player_search> [region: eu] [separate_nations: no (no for sorting by mark > tier, yes for sorting by nation > mark)] [nations: all (filter to nations)] [types: all (filter to types, can be lightTank, mediumTank, heavyTank, AT-SPG or SPG)] [tiers: all (filter to tiers)]'
     )
     async def showmarks(self, ctx: Context, player_search: str, *, flags: MarkCollageFlags):
-        '''Will create a collage of all marks achieved by player'''
+        '''Will create a mosaic of all marks achieved by player'''
         player_region = flags.region
         separate_nations = flags.separate_nations
         nations = flags.nations
@@ -714,7 +717,7 @@ class WoT(commands.Cog):
 
         async with ctx.loading(initial_message='Searching') as loader:
             player = await self._search_player(player_search, player_region)
-            await loader.update('Filtering')
+            await loader.update('Filtering data')
             filtered_data = list(filter(
                 lambda item: item.mark is not MarkType.no_mark,
                 await self._get_tank_stats(
@@ -739,7 +742,7 @@ class WoT(commands.Cog):
                 key=sort_key,
                 reverse=True
             )
-            await loader.update('Generating')
+            await loader.update('Generating mosaic')
             _file = await self._generate_mark_image(
                 player,
                 separate_nations,
@@ -751,9 +754,9 @@ class WoT(commands.Cog):
 
                 Types: {', '.join([separate_capitals(t) for t in types]) or 'all'}
                 Nations: {', '.join(nations) or 'all'}
-                Tiers: {', '.join(tiers) or 'all'}
+                Tiers: {', '.join(map(str, tiers)) or 'all'}
             ''')
-            await loader.update('Uploading')
+            await loader.update('Uploading image')
             await ctx.send_response(
                 msg,
                 image='attachment://marks.png',
@@ -843,18 +846,33 @@ class WoT(commands.Cog):
         moe_region = flags.region
         moe_days = flags.moe_days
 
-        async with ctx.loading(initial_message='Gathering') as loader:
-            tank = self.bot.search_tank(tank_search, 'short_name')
+        async with ctx.loading(initial_message='Choosing tank') as loader:
+            tanks = self.bot.search_tank(tank_search, 'short_name', 5)
+            # Start dropdown view with 5 close matches of input name
+            view = DropdownUI('Choose the tank:', [t.short_name for t in tanks], [t.nation_emote for t in tanks])
+            view_message = await ctx.send(view=view)
+            # Wait untill user selects a choice, or the view runs out of time
+            await view.wait()
+            values = view.children[0].values
+            # If choice selected, get the tank object from it
+            if values:
+                tank = discord.utils.find(lambda t: t.short_name == values[0], tanks)
+            else:
+                tank = tanks[0] # else just use the first result
+            # Delete select window
+            await view_message.delete()
+            await loader.update('Gathering data')
             embed = await ctx.send_response(
                 tank.tank_summary,
                 title=f'{str(moe_region).upper()} requirements for {tank.short_name}',
                 thumbnail=tank.big_icon,
                 send=False
             )
+            link_region = 'com' if moe_region is Region.na else str(moe_region)
 
             # MoE information
             if tank.tier >= 5:
-                async with self.bot.AIOHTTP_SESSION.get(f'https://gunmarks.poliroid.ru/api/{str(moe_region).lower()}/vehicle/{tank.id}/65,85,95,100') as r:
+                async with self.bot.AIOHTTP_SESSION.get(f'https://gunmarks.poliroid.ru/api/{link_region}/vehicle/{tank.id}/65,85,95,100') as r:
                     if r.status != 200:
                         raise ApiError(r.status)
 
@@ -862,7 +880,7 @@ class WoT(commands.Cog):
                     moe_data = json_r['data']
                     curr_marks = moe_data[0]['marks'] # Latest mark data is first in list
 
-                await loader.update('Generating')
+                await loader.update('Generating image')
                 _file = self._generate_requirements_image(moe_data, moe_days, tank)
                 embed.set_image(url=f'attachment://moe_history.png')
                 embed.add_field(
@@ -875,10 +893,10 @@ class WoT(commands.Cog):
                     ''')
                 )
 
-            await loader.update('Gathering')
+            await loader.update('Gathering data')
 
             # Mastery information
-            async with self.bot.AIOHTTP_SESSION.get(f'https://mastery.poliroid.ru/api/{str(moe_region).lower()}/vehicle/{tank.id}') as r:
+            async with self.bot.AIOHTTP_SESSION.get(f'https://mastery.poliroid.ru/api/{link_region}/vehicle/{tank.id}') as r:
                 if r.status != 200:
                     raise ApiError(r.status)
 
@@ -950,7 +968,7 @@ class WoT(commands.Cog):
                 value='\u200b'
             )
             if tank.tier >= 5:
-                await loader.update('Uploading')
+                await loader.update('Uploading image')
                 await ctx.send(embed=embed, file=_file)
             else:
                 await ctx.send(embed=embed)
@@ -1730,5 +1748,5 @@ class WoT(commands.Cog):
             await pages.start(ctx)
 
 
-def setup(bot):
-    bot.add_cog(WoT(bot))
+async def setup(bot):
+    await bot.add_cog(WoT(bot))
