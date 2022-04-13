@@ -35,12 +35,11 @@ from collections import defaultdict
 from pathlib import Path
 from textwrap import dedent
 
-import aiohttp
 import aiosqlite
 import discord
+from discord import AllowedMentions, MessageReference
 from discord import __version__ as dcversion
 from discord.ext import commands, tasks
-from discord.message import MessageReference
 from discord.utils import format_dt
 from humanize import naturaldelta
 from humanize.number import ordinal
@@ -130,7 +129,6 @@ class Events(commands.Cog):
 
         Actions
         -------
-        * create `bot.AIOHTTP_SESSION`
         * load tanks in `bot.TANKS`
         * load achievements in `bot.ACHIEVEMENTS`
         * create `bot.CONN` and check if tables are in place
@@ -139,7 +137,6 @@ class Events(commands.Cog):
         '''
         if self.bot.BEEN_READY is False:
             # Load variables that require async func
-            self.bot.AIOHTTP_SESSION = aiohttp.ClientSession(loop=self.bot.loop)
             logger = logging.getLogger('brankobot')
             logger.info('Bot is ready')
 
@@ -382,20 +379,29 @@ class Events(commands.Cog):
         # Resend twitter status with new website that has a embed that works (fxtwitter)
         elif matches := self.twitter_url_regex.findall(content):
             formatted = [f'https://fxtwitter.com/{handle}/status/{status_id}' for handle, status_id in matches]
-            message = await message.reply(f'Working (video) embed{"s"[:len(formatted)^1]} (react with ❌ to delete this message):\n' + '\n'.join(formatted), mention_author=False)
+            text = f'Working (video) embed{"s"[:len(formatted)^1]}:\n' + '\n'.join(formatted)
+            message = await message.reply(
+                content=text + '\n(react with ❌ to delete this message):',
+                allowed_mentions=AllowedMentions(replied_user=False)
+            )
 
-            # Delete reacted message if author of original reacts with ❌
+            # Delete reacted message if author of original reacts with ❌ within 15 sec
             await message.add_reaction('❌')
             try:
                 await self.bot.wait_for(
                     'reaction_add',
                     check=lambda r, u: u == author and str(r) == '❌' and r.message == message,
-                    timeout=30
+                    timeout=15
                 )
                 await message.delete()
 
+            # Cooldown ran out so edit the message to remove 'react with ..' and remove reaction
             except asyncio.TimeoutError:
                 await message.remove_reaction('❌', self.bot.user)
+                await message.edit(
+                    content=text,
+                    allowed_mentions=AllowedMentions(replied_user=False)
+                )
 
         # React to being mentioned
         elif self.bot.user in message.mentions:
@@ -708,5 +714,5 @@ class Events(commands.Cog):
 
         await ctx.reply(exc, delete_after=60, mention_author=False)
 
-def setup(bot):
-    bot.add_cog(Events(bot))
+async def setup(bot):
+    await bot.add_cog(Events(bot))
