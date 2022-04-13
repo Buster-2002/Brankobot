@@ -460,5 +460,5 @@ class Music(commands.Cog):
         await ctx.send_response(f'**Stopped** playing and disconnected by {ctx.author.mention}', show_invoke_speed=False)
 
 
-def setup(bot):
-    bot.add_cog(Music(bot))
+async def setup(bot):
+    await bot.add_cog(Music(bot))

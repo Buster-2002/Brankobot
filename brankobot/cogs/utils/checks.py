@@ -100,7 +100,7 @@ def channel_check(*additional_channels: Tuple[Union[BigRLDChannelType, SmallRLDC
 
     async def predicate(ctx: Context) -> bool:
         if (await ctx.bot.is_owner(ctx.author)) is False:
-            allowed_ids = {ct.value for ct in channel_types} | {869681728170639391, 859739694635679794}
+            allowed_ids = {ct.value for ct in channel_types} | {963752302475370496, 859739694635679794}
             ctx.command.allowed_channel_types = channel_types
 
             if not ctx.channel.id in allowed_ids:
