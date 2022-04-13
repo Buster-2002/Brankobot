@@ -29,7 +29,7 @@ __title__ = 'Brankobot'
 __author__ = 'Buster#5741'
 __license__ = 'MIT'
 __copyright__ = 'Copyright 2021-present Buster'
-__version__ = '6.1.2'
+__version__ = '6.2.0'
 
 import asyncio
 import logging
@@ -43,6 +43,7 @@ from functools import lru_cache
 from textwrap import dedent
 from typing import List, Optional, Tuple, Union
 
+import aiohttp
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -69,17 +70,6 @@ bot_logger.setLevel(logging.DEBUG)
 bot_handler = logging.FileHandler(filename='brankobot.log', encoding='utf-8', mode='w')
 bot_handler.setFormatter(formatter)
 bot_logger.addHandler(bot_handler)
-
-# Extensions to load
-EXTENSIONS = {
-    'cogs.events',
-    'cogs.fun',
-    'cogs.help',
-    'cogs.utilities',
-    'cogs.wot',
-    'cogs.music',
-    'cogs.misc'
-}
 
 
 def get_prefix(_bot: commands.Bot, _message: discord.Message) -> commands.when_mentioned_or:
@@ -151,10 +141,10 @@ class Context(commands.Context):
             or the Embed instance to send, depending on `send`
         '''
         title: str = kwargs.get('title', self.command.qualified_name.title())
-        url: str = kwargs.get('url', discord.Embed.Empty)
+        url: str = kwargs.get('url')
         colour: Union[int, discord.Colour] = kwargs.get('colour', 14389052)
-        thumbnail: str = kwargs.get('thumbnail', discord.Embed.Empty)
-        image: str = kwargs.get('image', discord.Embed.Empty)
+        thumbnail: str = kwargs.get('thumbnail')
+        image: str = kwargs.get('image')
         files: Union[List[discord.File], discord.File] = kwargs.get('files', [])
         files = [files] if not isinstance(files, list) else files
         fields: List[Tuple[str, str, Optional[bool]]] = kwargs.get('fields', [])
@@ -273,6 +263,7 @@ class Bot(commands.Bot):
                 members=True,         # on_member_join, on_member_remove, get_user, get_member, roles, nick
                 presences=True,       # member.status
                 guild_messages=True,  # on_message
+                message_content=True, # on_message
                 guild_reactions=True, # For menus
                 voice_states=True,    # music
             ),
@@ -301,6 +292,15 @@ class Bot(commands.Bot):
             'RAW_SEND': 0,
             'RAW_RECEIVED': 0
         }
+        self.INITIAL_EXTENSIONS = {
+            'cogs.events',
+            'cogs.fun',
+            'cogs.help',
+            'cogs.utilities',
+            'cogs.wot',
+            'cogs.music',
+            'cogs.misc'
+        }
 
 
     async def on_socket_raw_send(self, _: bytes):
@@ -309,6 +309,21 @@ class Bot(commands.Bot):
 
     async def on_socket_raw_receive(self, _: bytes):
         self.SOCKET_STATS['RAW_RECEIVED'] += 1
+
+
+    async def get_context(self, message: discord.Message, *, cls=None):
+        return await super().get_context(message, cls=cls or Context)
+
+
+    async def setup_hook(self):
+        self.AIOHTTP_SESSION = aiohttp.ClientSession()
+        for ext in self.INITIAL_EXTENSIONS:
+            await self.load_extension(ext)
+
+
+    async def close(self):
+        await super().close()
+        await self.AIOHTTP_SESSION.close()
 
 
     async def on_error(self, event: str, *args, **kwargs) -> Optional[discord.Message]:
@@ -326,7 +341,6 @@ class Bot(commands.Bot):
         '''
         exception_type, error, traceback = sys.exc_info()
 
-        raise error
         if event == 'on_message':
             message = args[0]
             if isinstance(error, commands.CommandOnCooldown):
@@ -546,7 +560,7 @@ class Bot(commands.Bot):
 
 
     @lru_cache(maxsize=256)
-    def search_tank(self, tank_search: str, key: str = 'internal_name') -> Tank:
+    def search_tank(self, tank_search: str, key: str = 'internal_name', n_results: int = 1) -> Union[List[Tank], Tank]:
         '''Cached
 
         Searches a tank by key in internal list
@@ -572,18 +586,16 @@ class Bot(commands.Bot):
         matches = get_close_matches(
             tank_search,
             list(possibilities.keys()),
-            n=1,
+            n=n_results,
             cutoff=0.5
         )
 
         if not matches:
             raise TankNotFound(tank_search)
-
+        
+        if n_results > 1:
+            return [self.TANKS[possibilities[m]] for m in matches]
         return self.TANKS[possibilities[matches[0]]]
-
-
-    async def get_context(self, message: discord.Message, *, cls=None):
-        return await super().get_context(message, cls=cls or Context)
 
 
     async def wot_api(
@@ -666,11 +678,6 @@ class Bot(commands.Bot):
             return json_data
 
 
-bot = Bot()
-
 if __name__ == '__main__':
-    for ext in EXTENSIONS:
-        bot.load_extension(ext)
-        print(f'[*] Loaded extension {ext}')
-
+    bot = Bot()
     bot.run(bot.DISCORD_API_TOKEN)
