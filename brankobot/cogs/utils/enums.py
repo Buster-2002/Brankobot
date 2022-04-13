@@ -356,6 +356,19 @@ class Emote(_StrIsValue, Enum):
     defeat  = '<:defeat:871808719074230272>'
     revolt  = '<:revolt:903703095995953202>'
 
+    # NATIONS
+    germany = '<:germany:963750950852497439>'
+    ussr    = '<:ussr:963750950756024350>'
+    usa     = '<:usa:963750950688935976> '
+    france  = '<:france:963750949749415976> '
+    uk      = '<:uk:963750950705705021> '
+    china   = '<:china:963750949346754601>'
+    japan   = '<:japan:963750950483406848>'
+    czech   = '<:czech:963750949720035348>'
+    poland  = '<:poland:963750950407897119> '
+    sweden  = '<:sweden:963750950084943885> '
+    italy   = '<:italy:963750952286949376>'
+
     # MOE
     # Germany
     germany_1 = '<:germany_1:870654024817459270>'
