@@ -126,7 +126,7 @@ class ReplayPaginator(menus.ListPageSource):
 
     async def format_page(self, menu, entry: Union[BattleEconomy, BattlePerformance, BattlePlayer, BattleXP, MetaData]) -> discord.Embed:
         fields, description = [], ''
-        thumbnail_url, image_url = discord.Embed.Empty, discord.Embed.Empty
+        thumbnail_url, image_url = None, None
 
         if isinstance(entry, MetaData):
             tank = self.ctx.bot.search_tank(entry.internal_tank_name)
