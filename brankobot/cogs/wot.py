@@ -877,7 +877,10 @@ class WoT(commands.Cog):
                         raise ApiError(r.status)
 
                     json_r = await r.json()
-                    moe_data = json_r['data']
+                    moe_data = json_r.get('data')
+                    if not moe_data:
+                        raise ApiError(500, 'poliroid.ru not responding, try again')
+
                     curr_marks = moe_data[0]['marks'] # Latest mark data is first in list
 
                 await loader.update('Generating image')
@@ -920,24 +923,20 @@ class WoT(commands.Cog):
 
                     text_r = await r.text()
                     soup = BeautifulSoup(text_r, 'html.parser')
-                    wn8_row = soup.find('div', {'class': 'col-md-5 tank-wn8'})
-                    wn8_yellow = wn8_row.find('div', {'class': 'col-xs-3 wn8 wn8-yellow'}).string
-                    wn8_green = wn8_row.find('div', {'class': 'col-xs-3 wn8 wn8-green'}).string
-                    wn8_blue = wn8_row.find('div', {'class': 'col-xs-3 wn8 wn8-blue'}).string
-                    wn8_purple = wn8_row.find('div', {'class': 'col-xs-3 wn8 wn8-purple'}).string
-
-                    expected_row = soup.find('div', {'class': 'col-md-7 tank-exp clearfix'}).find_all('div', {'class': 'col-xs-6 col-sm-3'})
-                    expected_kills = expected_row[0].find('strong').string
-                    expected_spots = expected_row[1].find('strong').string
-                    expected_defense = expected_row[2].find('strong').string
-                    expected_winrate = expected_row[3].find('strong').string
 
                     shots_row = soup.find_all('div', {'class': 'guns-wrapper'})[-1]
-                    if wn8_row:
+                    if shots_row:
                         shots_yellow = shots_row.find_all('div', {'class': 'col-xs-3 wn8 wn8-yellow'})[-1].string
                         shots_green = shots_row.find_all('div', {'class': 'col-xs-3 wn8 wn8-green'})[-1].string
                         shots_blue = shots_row.find_all('div', {'class': 'col-xs-3 wn8 wn8-blue'})[-1].string
                         shots_purple = shots_row.find_all('div', {'class': 'col-xs-3 wn8 wn8-purple'})[-1].string
+
+                    wn8_row = soup.find('div', {'class': 'col-md-5 tank-wn8'})
+                    if wn8_row:
+                        wn8_yellow = wn8_row.find('div', {'class': 'col-xs-3 wn8 wn8-yellow'}).string
+                        wn8_green = wn8_row.find('div', {'class': 'col-xs-3 wn8 wn8-green'}).string
+                        wn8_blue = wn8_row.find('div', {'class': 'col-xs-3 wn8 wn8-blue'}).string
+                        wn8_purple = wn8_row.find('div', {'class': 'col-xs-3 wn8 wn8-purple'}).string
                         embed.url = f'https://www.wotgarage.net/{tank.nation}/{tank.tier}/{tank.id}/'
                         embed.add_field(
                             name='WN8 (dmg)',
@@ -948,6 +947,13 @@ class WoT(commands.Cog):
                                 :purple_circle: {wn8_purple} ({shots_purple} shots)
                             ''')
                         )
+
+                    expected_row = soup.find('div', {'class': 'col-md-7 tank-exp clearfix'}).find_all('div', {'class': 'col-xs-6 col-sm-3'})
+                    if expected_row:
+                        expected_kills = expected_row[0].find('strong').string
+                        expected_spots = expected_row[1].find('strong').string
+                        expected_defense = expected_row[2].find('strong').string
+                        expected_winrate = expected_row[3].find('strong').string
                         embed.add_field(
                             name='Average',
                             value=dedent(f'''
@@ -957,6 +963,8 @@ class WoT(commands.Cog):
                                 {Emote.win} {expected_winrate} winrate
                             ''')
                         )
+
+                    if wn8_row and expected_row:
                         embed.add_field(
                             name='\u200b',
                             value='\u200b'
