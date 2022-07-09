@@ -24,7 +24,6 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 '''
 
-import asyncio
 import datetime
 import json
 import logging
@@ -37,7 +36,7 @@ from textwrap import dedent
 
 import aiosqlite
 import discord
-from discord import AllowedMentions, MessageReference
+from discord import MessageReference
 from discord import __version__ as dcversion
 from discord.ext import commands, tasks
 from discord.utils import format_dt
@@ -359,10 +358,10 @@ class Events(commands.Cog):
         -------
         * remove links if someone without roles posts one
         * react if mentioned
-        * send fixed links for twitter embeds
         * send custom command content if its found, and increment its usage by 1
         * send message content if it is the same 4x in a row
         '''
+        guild = message.guild
         channel = message.channel
         content = message.content
         author = message.author
@@ -376,32 +375,33 @@ class Events(commands.Cog):
             if self.url_regex.search(content) is not None:
                 await message.delete()
 
-        # Resend twitter status with new website that has a embed that works (fxtwitter)
-        elif matches := self.twitter_url_regex.findall(content):
-            formatted = [f'https://fxtwitter.com/{handle}/status/{status_id}' for handle, status_id in matches]
-            text = f'Working (video) embed{"s"[:len(formatted)^1]}:\n' + '\n'.join(formatted)
-            message = await message.reply(
-                content=text + '\n(react with ❌ to delete this message):',
-                allowed_mentions=AllowedMentions(replied_user=False)
-            )
+        # -- fxtwitter domain doesnt work anymore -- #
+        # # Resend twitter status with new website that has a embed that works (fxtwitter)
+        # elif matches := self.twitter_url_regex.findall(content):
+        #     formatted = [f'https://fxtwitter.com/{handle}/status/{status_id}' for handle, status_id in matches]
+        #     text = f'Working (video) embed{"s"[:len(formatted)^1]}:\n' + '\n'.join(formatted)
+        #     message = await message.reply(
+        #         content=text + '\n(react with ❌ to delete this message):',
+        #         allowed_mentions=AllowedMentions(replied_user=False)
+        #     )
 
-            # Delete reacted message if author of original reacts with ❌ within 15 sec
-            await message.add_reaction('❌')
-            try:
-                await self.bot.wait_for(
-                    'reaction_add',
-                    check=lambda r, u: u == author and str(r) == '❌' and r.message == message,
-                    timeout=15
-                )
-                await message.delete()
+        #     # Delete reacted message if author of original reacts with ❌ within 15 sec
+        #     await message.add_reaction('❌')
+        #     try:
+        #         await self.bot.wait_for(
+        #             'reaction_add',
+        #             check=lambda r, u: u == author and str(r) == '❌' and r.message == message,
+        #             timeout=15
+        #         )
+        #         await message.delete()
 
-            # Cooldown ran out so edit the message to remove 'react with ..' and remove reaction
-            except asyncio.TimeoutError:
-                await message.remove_reaction('❌', self.bot.user)
-                await message.edit(
-                    content=text,
-                    allowed_mentions=AllowedMentions(replied_user=False)
-                )
+        #     # Cooldown ran out so edit the message to remove 'react with ..' and remove reaction
+        #     except asyncio.TimeoutError:
+        #         await message.remove_reaction('❌', self.bot.user)
+        #         await message.edit(
+        #             content=text,
+        #             allowed_mentions=AllowedMentions(replied_user=False)
+        #         )
 
         # React to being mentioned
         elif self.bot.user in message.mentions:
@@ -436,6 +436,13 @@ class Events(commands.Cog):
                             (command.id,)
                         )
                         await self.bot.CONN.commit()
+
+                        # mute spinee in -RLD- server because he is a faggot, when shut up command is used (>su or >suu)
+                        if command.name in {'su', 'suu'} and guild.id == GuildType.big_rld:
+                            spinkel = guild.get_member(859412261994364968)
+                            if not spinkel.is_timed_out():
+                                await spinkel.timeout(datetime.timedelta(seconds=30))
+                                logger.info(f'"{author}" timed out spinee using ">{command.name}" in #{channel}')
 
                     else:
                         # This will be caught by our on_error handler
@@ -479,7 +486,7 @@ class Events(commands.Cog):
           the account is at least 30 days old.
         '''
         guild = member.guild
-        account_age = datetime.datetime.utcnow() - member.created_at
+        account_age = discord.utils.utcnow() - member.created_at.replace(tzinfo=datetime.timezone.utc)
         channel_id = None
 
         if guild.id == GuildType.big_rld.value:
@@ -651,6 +658,9 @@ class Events(commands.Cog):
             await self.bot.CONN.rollback()
             await ctx.reply(f'database issue: {error} (<@764584777642672160>)', mention_author=False)
             raise error
+
+        elif isinstance(error, commands.ExpectedClosingQuoteError):
+            exc = f'you forgot to close quotes with {error.close_quote}, which causes the command parser to not know what the fuck it is doing'
 
         elif isinstance(error, commands.CheckFailure):
             exc = 'you can only use `help` in #bot'
