@@ -35,17 +35,17 @@ from .enums import (Emote, EventStatusType, FormattedNationType,
                     FormattedTankType, MarkType, MasteryType, Region, try_enum)
 
 
-@dataclass
-class Birthday:
-    id: int
-    user_id: int
-    server_id: int
-    date_string: str
+# @dataclass
+# class Birthday:
+#     id: int
+#     user_id: int
+#     server_id: int
+#     date_string: str
 
-    @property
-    def date(self) -> datetime:
-        year, month, day = map(int, self.date_string.split('-'))
-        return datetime(year=year, month=month, day=day)
+#     @property
+#     def date(self) -> datetime:
+#         year, month, day = map(int, self.date_string.split('-'))
+#         return datetime(year=year, month=month, day=day)
 
 
 @dataclass
@@ -100,6 +100,26 @@ class CustomCommand:
     @property
     def created_at(self) -> datetime:
         return datetime.fromtimestamp(self.creation_timestamp)
+
+
+@dataclass
+class BlacklistedUser:
+    id: int
+    user_id: int
+    blacklisted_at_timestamp: float
+    blacklisted_by_id: int
+
+    @property
+    def user(self) -> Object:
+        return Object(self.user_id)
+
+    @property
+    def blacklisted_by(self) -> Object:
+        return Object(self.blacklisted_by_id)
+
+    @property
+    def blacklisted_at(self) -> datetime:
+        return datetime.fromtimestamp(self.blacklisted_at_timestamp)
 
 
 @dataclass
