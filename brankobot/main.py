@@ -29,7 +29,7 @@ __title__ = 'Brankobot'
 __author__ = 'Buster#5741'
 __license__ = 'MIT'
 __copyright__ = 'Copyright 2021-present Buster'
-__version__ = '6.2.0'
+__version__ = '6.3.0'
 
 import asyncio
 import logging
@@ -51,8 +51,8 @@ from dotenv import load_dotenv
 from cogs.utils.enums import Region, WotApiType
 from cogs.utils.errors import ApiError, TankNotFound
 from cogs.utils.helpers import ConfirmUI, Loading
-from cogs.utils.models import (Achievement, Birthday, CustomCommand, Reminder,
-                               Tank)
+from cogs.utils.models import (Achievement, CustomCommand, Reminder,
+                               Tank, BlacklistedUser)
 
 load_dotenv()
 
@@ -288,6 +288,7 @@ class Bot(commands.Bot):
         self.REMINDER_TASKS = {}
         self.MUSIC_PLAYERS = {}
         self._BotBase__cogs = commands.core._CaseInsensitiveDict()
+        self.add_check(self.not_blacklisted_check)
         self.SOCKET_STATS = {
             'RAW_SEND': 0,
             'RAW_RECEIVED': 0
@@ -301,6 +302,27 @@ class Bot(commands.Bot):
             'cogs.music',
             'cogs.misc'
         }
+
+
+    async def not_blacklisted_check(self, ctx) -> bool:
+        '''Checks if the user invoking the command isn't on the Brankobot blacklist'''
+        cursor = await self.CONN.cursor()
+        try:
+            select_blacklisted_user_ids_query = dedent('''
+                SELECT user_id
+                FROM blacklisted_users
+            '''.strip())
+
+            result = await cursor.execute(select_blacklisted_user_ids_query)
+            ids = {r[0] for r in await result.fetchall()}
+
+            if ctx.author.id in ids:
+                return False
+
+            return True
+
+        finally:
+            await cursor.close()
 
 
     async def on_socket_raw_send(self, _: bytes):
@@ -355,74 +377,74 @@ class Bot(commands.Bot):
             logger.exception('Unexpected error')
 
 
-    async def get_birthday(self, user_id: int) -> Optional[Birthday]:
-        '''Gets the birthday from database belonging to user id
+    # async def get_birthday(self, user_id: int) -> Optional[Birthday]:
+    #     '''Gets the birthday from database belonging to user id
 
-        Parameters
-        ----------
-        user_id : int
-            The owner of the birthday by ID, to search with
+    #     Parameters
+    #     ----------
+    #     user_id : int
+    #         The owner of the birthday by ID, to search with
 
-        Returns
-        -------
-        Optional[Birthday]
-            The birthday if found
-        '''
-        cursor = await self.CONN.cursor()
-        try:
-            select_birthday_query = dedent('''
-                SELECT *
-                FROM birthdays
-                WHERE user_id = ?;
-            '''.strip())
+    #     Returns
+    #     -------
+    #     Optional[Birthday]
+    #         The birthday if found
+    #     '''
+    #     cursor = await self.CONN.cursor()
+    #     try:
+    #         select_birthday_query = dedent('''
+    #             SELECT *
+    #             FROM birthdays
+    #             WHERE user_id = ?;
+    #         '''.strip())
 
-            result = await cursor.execute(
-                select_birthday_query,
-                (user_id,)
-            )
-            row = await result.fetchone()
+    #         result = await cursor.execute(
+    #             select_birthday_query,
+    #             (user_id,)
+    #         )
+    #         row = await result.fetchone()
 
-            if row:
-                return Birthday(*row)
+    #         if row:
+    #             return Birthday(*row)
 
-            return None
+    #         return None
 
-        finally:
-            await cursor.close()
+    #     finally:
+    #         await cursor.close()
 
 
-    async def delete_birthday(self, user_id: int) -> tuple:
-        '''Deletes a birthday from the database
+    # async def delete_birthday(self, user_id: int) -> tuple:
+    #     '''Deletes a birthday from the database
 
-        Parameters
-        ----------
-        user_id : int
-            The owner of the birthday by ID, to delete
+    #     Parameters
+    #     ----------
+    #     user_id : int
+    #         The owner of the birthday by ID, to delete
 
-        Returns
-        -------
-        tuple
-            [description]
-        '''
-        cursor = await self.CONN.cursor()
-        try:
-            delete_birthday_query = dedent('''
-                DELETE
-                FROM birthdays
-                WHERE user_id = ?
-                RETURNING *;
-            '''.strip())
+    #     Returns
+    #     -------
+    #     tuple
+    #         [description]
+    #     '''
+    #     cursor = await self.CONN.cursor()
+    #     try:
+    #         delete_birthday_query = dedent('''
+    #             DELETE
+    #             FROM birthdays
+    #             WHERE user_id = ?
+    #             RETURNING *;
+    #         '''.strip())
 
-            result = await cursor.execute(
-                delete_birthday_query,
-                (user_id,)
-            )
-            row = await result.fetchone()
-            await self.CONN.commit()
-            return row
+    #         result = await cursor.execute(
+    #             delete_birthday_query,
+    #             (user_id,)
+    #         )
+    #         row = await result.fetchone()
+    #         await self.CONN.commit()
+    #         return row
 
-        finally:
-            await cursor.close()
+    #     finally:
+    #         await cursor.close()
 
 
     async def delete_reminder(self, reminder: Reminder):
@@ -489,6 +511,42 @@ class Bot(commands.Bot):
 
             else:
                 await self.delete_reminder(reminder)
+
+        finally:
+            await cursor.close()
+
+
+    async def get_blacklisted_user(self, user_id: int) -> Optional[BlacklistedUser]:
+        '''Gets a blacklisted user by their ID
+
+        Parameters
+        ----------
+        user_id : int
+            The blacklisted users ID
+
+        Returns
+        -------
+        Optional[BlacklistedUser]
+            The blacklisted user, if found
+        '''
+        cursor = await self.CONN.cursor()
+        try:
+            select_blacklisted_user_query = dedent('''
+                SELECT *
+                FROM blacklisted_users
+                WHERE user_id = ?;
+            '''.strip())
+
+            result = await cursor.execute(
+                select_blacklisted_user_query,
+                (user_id,)
+            )
+            row = await result.fetchone()
+
+            if row:
+                return BlacklistedUser(*row)
+
+            return None
 
         finally:
             await cursor.close()
@@ -592,7 +650,7 @@ class Bot(commands.Bot):
 
         if not matches:
             raise TankNotFound(tank_search)
-        
+
         if n_results > 1:
             return [self.TANKS[possibilities[m]] for m in matches]
         return self.TANKS[possibilities[matches[0]]]
