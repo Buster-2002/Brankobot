@@ -874,12 +874,12 @@ class WoT(commands.Cog):
             if tank.tier >= 5:
                 async with self.bot.AIOHTTP_SESSION.get(f'https://gunmarks.poliroid.ru/api/{link_region}/vehicle/{tank.id}/65,85,95,100') as r:
                     if r.status != 200:
-                        raise ApiError(r.status)
+                        raise ApiError(r.status, 'gunmarks.poliroid.ru API error, try again later')
 
                     json_r = await r.json()
                     moe_data = json_r.get('data')
                     if not moe_data:
-                        raise ApiError(500, 'poliroid.ru not responding, try again')
+                        raise ApiError(500, 'gunmarks.poliroid.ru API not responding, try again later')
 
                     curr_marks = moe_data[0]['marks'] # Latest mark data is first in list
 
@@ -901,7 +901,7 @@ class WoT(commands.Cog):
             # Mastery information
             async with self.bot.AIOHTTP_SESSION.get(f'https://mastery.poliroid.ru/api/{link_region}/vehicle/{tank.id}') as r:
                 if r.status != 200:
-                    raise ApiError(r.status)
+                    raise ApiError(r.status, 'mastery.poliroid.ru API error, try again later')
 
                 json_r = await r.json()
                 mastery_data = json_r['data'][0]['mastery']
@@ -917,58 +917,59 @@ class WoT(commands.Cog):
 
             # Requirements information
             if moe_region is Region.eu:
-                async with self.bot.AIOHTTP_SESSION.get(f'https://www.wotgarage.net/{tank.nation}/{tank.tier}/{tank.id}/{tank.internal_name}') as r:
-                    if r.status != 200:
-                        raise ApiError(r.status)
+                with suppress(IndexError):
+                    async with self.bot.AIOHTTP_SESSION.get(f'https://www.wotgarage.net/{tank.nation}/{tank.tier}/{tank.id}/{tank.internal_name}') as r:
+                        if r.status != 200:
+                            raise ApiError(r.status)
 
-                    text_r = await r.text()
-                    soup = BeautifulSoup(text_r, 'html.parser')
+                        text_r = await r.text()
+                        soup = BeautifulSoup(text_r, 'html.parser')
 
-                    shots_row = soup.find_all('div', {'class': 'guns-wrapper'})[-1]
-                    if shots_row:
-                        shots_yellow = shots_row.find_all('div', {'class': 'col-xs-3 wn8 wn8-yellow'})[-1].string
-                        shots_green = shots_row.find_all('div', {'class': 'col-xs-3 wn8 wn8-green'})[-1].string
-                        shots_blue = shots_row.find_all('div', {'class': 'col-xs-3 wn8 wn8-blue'})[-1].string
-                        shots_purple = shots_row.find_all('div', {'class': 'col-xs-3 wn8 wn8-purple'})[-1].string
+                        shots_row = soup.find_all('div', {'class': 'guns-wrapper'})[-1]
+                        if shots_row:
+                            shots_yellow = shots_row.find_all('div', {'class': 'col-xs-3 wn8 wn8-yellow'})[-1].string
+                            shots_green = shots_row.find_all('div', {'class': 'col-xs-3 wn8 wn8-green'})[-1].string
+                            shots_blue = shots_row.find_all('div', {'class': 'col-xs-3 wn8 wn8-blue'})[-1].string
+                            shots_purple = shots_row.find_all('div', {'class': 'col-xs-3 wn8 wn8-purple'})[-1].string
 
-                    wn8_row = soup.find('div', {'class': 'col-md-5 tank-wn8'})
-                    if wn8_row:
-                        wn8_yellow = wn8_row.find('div', {'class': 'col-xs-3 wn8 wn8-yellow'}).string
-                        wn8_green = wn8_row.find('div', {'class': 'col-xs-3 wn8 wn8-green'}).string
-                        wn8_blue = wn8_row.find('div', {'class': 'col-xs-3 wn8 wn8-blue'}).string
-                        wn8_purple = wn8_row.find('div', {'class': 'col-xs-3 wn8 wn8-purple'}).string
-                        embed.url = f'https://www.wotgarage.net/{tank.nation}/{tank.tier}/{tank.id}/'
-                        embed.add_field(
-                            name='WN8 (dmg)',
-                            value=dedent(f'''
-                                :yellow_circle: {wn8_yellow} ({shots_yellow} shots)
-                                :green_circle: {wn8_green} ({shots_green} shots)
-                                :blue_circle: {wn8_blue} ({shots_blue} shots)
-                                :purple_circle: {wn8_purple} ({shots_purple} shots)
-                            ''')
-                        )
+                        wn8_row = soup.find('div', {'class': 'col-md-5 tank-wn8'})
+                        if wn8_row:
+                            wn8_yellow = wn8_row.find('div', {'class': 'col-xs-3 wn8 wn8-yellow'}).string
+                            wn8_green = wn8_row.find('div', {'class': 'col-xs-3 wn8 wn8-green'}).string
+                            wn8_blue = wn8_row.find('div', {'class': 'col-xs-3 wn8 wn8-blue'}).string
+                            wn8_purple = wn8_row.find('div', {'class': 'col-xs-3 wn8 wn8-purple'}).string
+                            embed.url = f'https://www.wotgarage.net/{tank.nation}/{tank.tier}/{tank.id}/'
+                            embed.add_field(
+                                name='WN8 (dmg)',
+                                value=dedent(f'''
+                                    :yellow_circle: {wn8_yellow} ({shots_yellow} shots)
+                                    :green_circle: {wn8_green} ({shots_green} shots)
+                                    :blue_circle: {wn8_blue} ({shots_blue} shots)
+                                    :purple_circle: {wn8_purple} ({shots_purple} shots)
+                                ''')
+                            )
 
-                    expected_row = soup.find('div', {'class': 'col-md-7 tank-exp clearfix'}).find_all('div', {'class': 'col-xs-6 col-sm-3'})
-                    if expected_row:
-                        expected_kills = expected_row[0].find('strong').string
-                        expected_spots = expected_row[1].find('strong').string
-                        expected_defense = expected_row[2].find('strong').string
-                        expected_winrate = expected_row[3].find('strong').string
-                        embed.add_field(
-                            name='Average',
-                            value=dedent(f'''
-                                {Emote.kill} {expected_kills} kills
-                                {Emote.spot} {expected_spots} spots
-                                {Emote.defend} {expected_defense} def points
-                                {Emote.win} {expected_winrate} winrate
-                            ''')
-                        )
+                        expected_row = soup.find('div', {'class': 'col-md-7 tank-exp clearfix'}).find_all('div', {'class': 'col-xs-6 col-sm-3'})
+                        if expected_row:
+                            expected_kills = expected_row[0].find('strong').string
+                            expected_spots = expected_row[1].find('strong').string
+                            expected_defense = expected_row[2].find('strong').string
+                            expected_winrate = expected_row[3].find('strong').string
+                            embed.add_field(
+                                name='Average',
+                                value=dedent(f'''
+                                    {Emote.kill} {expected_kills} kills
+                                    {Emote.spot} {expected_spots} spots
+                                    {Emote.defend} {expected_defense} def points
+                                    {Emote.win} {expected_winrate} winrate
+                                ''')
+                            )
 
-                    if wn8_row and expected_row:
-                        embed.add_field(
-                            name='\u200b',
-                            value='\u200b'
-                        )
+                        if wn8_row and expected_row:
+                            embed.add_field(
+                                name='\u200b',
+                                value='\u200b'
+                            )
 
             embed.insert_field_at(
                 2,
