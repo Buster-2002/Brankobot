@@ -31,20 +31,25 @@ import discord
 from discord.ext import commands
 
 from .enums import Region
-from .models import Birthday, CustomCommand, Reminder
+from .models import CustomCommand, Reminder
 
 __all__ = (
-    # Birthday errors
-    'BirthdayDoesntExist',
-    'NoBirthdays',
-    'NotAModerator',
-    'BirthdayAlreadyRegistered',
+    # # Birthday errors
+    # 'BirthdayDoesntExist',
+    # 'NoBirthdays',
+    # 'NotAModerator',
+    # 'BirthdayAlreadyRegistered',
 
     # Music errors
     'VoiceChannelError',
     'NotPlaying',
     'EmptyQueue',
     'InvalidVolume',
+
+    # Blacklist errors
+    'AlreadyBlacklisted',
+    'NotBlacklisted',
+    'NoBlacklistedUsers',
 
     # Reminder errors
     'NoTimeFound',
@@ -79,23 +84,38 @@ __all__ = (
 )
 
 
-# Birthday errors
-class BirthdayError(commands.CommandError):
+# # Birthday errors
+# class BirthdayError(commands.CommandError):
+#     pass
+
+# class BirthdayDoesntExist(BirthdayError):
+#     def __init__(self, user: discord.User):
+#         self.user = user
+
+# class NoBirthdays(BirthdayError):
+#     pass
+
+# class NotAModerator(BirthdayError):
+#     pass
+
+# class BirthdayAlreadyRegistered(commands.CommandError):
+#     def __init__(self, birthday: Birthday):
+#         self.birthday = birthday
+
+# Blacklist errors
+class BlacklistError(commands.CommandError):
     pass
 
-class BirthdayDoesntExist(BirthdayError):
-    def __init__(self, user: discord.User):
-        self.user = user
+class AlreadyBlacklisted(BlacklistError):
+    def __init__(self, user_id: int):
+        self.user_id = user_id
 
-class NoBirthdays(BirthdayError):
+class NotBlacklisted(BlacklistError):
+    def __init__(self, user_id: int):
+        self.user_id = user_id
+
+class NoBlacklistedUsers(BlacklistError):
     pass
-
-class NotAModerator(BirthdayError):
-    pass
-
-class BirthdayAlreadyRegistered(commands.CommandError):
-    def __init__(self, birthday: Birthday):
-        self.birthday = birthday
 
 
 # Music errors
