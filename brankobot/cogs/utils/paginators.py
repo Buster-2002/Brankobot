@@ -31,13 +31,35 @@ from typing import List, Tuple, Union
 import discord
 from discord.ext import commands, menus
 from discord.utils import escape_markdown, format_dt
-from humanize import intcomma, precisedelta
+from humanize import intcomma, precisedelta, naturaltime
 
 from main import Context
 from .helpers import separate_capitals
-from .models import Achievement, CustomCommand, Reminder
+from .models import Achievement, CustomCommand, Reminder, BlacklistedUser
 from .wotreplay_folder import (BattleEconomy, BattlePerformance, BattlePlayer,
                                BattleXP, MetaData)
+
+
+class BlacklistPaginator(menus.ListPageSource):
+    def __init__(self, data, ctx: Context):
+        super().__init__(
+            data,
+            per_page=10
+        )
+        self.ctx = ctx
+
+    async def format_page(self, menu, entries: List[BlacklistedUser]) -> discord.Embed:
+        get_mention = lambda id: getattr(self.ctx.bot.get_user(id), 'mention', id)
+        embed = (await self.ctx.send_response(
+            '\n'.join(f'**{str(bu.id).zfill(3)}.** {get_mention(bu.user_id)} (blacklisted by {get_mention(bu.blacklisted_by_id)} {naturaltime(bu.blacklisted_at)})' for bu in entries),
+            title=f'Blacklisted Users',
+            send=False,
+            show_invoke_speed=False
+        )).set_footer(
+            text=f'page {menu.current_page + 1}/{self.get_max_pages()}',
+            icon_url=self.ctx.bot.user.display_avatar
+        )
+        return embed
 
 
 class MusicQueuePaginator(menus.ListPageSource):
