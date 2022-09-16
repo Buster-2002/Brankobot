@@ -73,28 +73,28 @@ def average(iterable: Iterable[int]) -> float:
     return sum(iterable) / len(iterable)
 
 
-def get_next_birthday(birth_date: datetime.datetime) -> datetime.datetime:
-    '''Returns next birthday date for a given birth date
+# def get_next_birthday(birth_date: datetime.datetime) -> datetime.datetime:
+#     '''Returns next birthday date for a given birth date
 
-    Parameters
-    ----------
-    birth_date : datetime.datetime
-        The birth date
+#     Parameters
+#     ----------
+#     birth_date : datetime.datetime
+#         The birth date
 
-    Returns
-    -------
-    datetime.datetime
-        The next birthday date, taking into account whether
-        it has already been this year.
-    '''
-    today = datetime.date.today()
-    year = today.year
+#     Returns
+#     -------
+#     datetime.datetime
+#         The next birthday date, taking into account whether
+#         it has already been this year.
+#     '''
+#     today = datetime.date.today()
+#     year = today.year
 
-    # If birthday has already been this year, we take the next year
-    if (today.month > birth_date.month) or (today.month == birth_date.month and today.day > birth_date.day):
-        year += 1
+#     # If birthday has already been this year, we take the next year
+#     if (today.month > birth_date.month) or (today.month == birth_date.month and today.day > birth_date.day):
+#         year += 1
 
-    return datetime.datetime(year, birth_date.month, birth_date.day)
+#     return datetime.datetime(year, birth_date.month, birth_date.day)
 
 
 class Loading:
@@ -102,7 +102,6 @@ class Loading:
         self.ctx = ctx
         self.initial_message: Optional[str] = initial_message
         self._message: discord.Message = None
-
 
     @staticmethod
     def _format_content(content: Optional[str]) -> str:
@@ -122,7 +121,6 @@ class Loading:
             return f'{Emote.loading} {content}...'
         return Emote.loading.value
 
-
     async def update(self, content: Optional[str]) -> None:
         '''Updates the loading message content
 
@@ -138,11 +136,9 @@ class Loading:
                     allowed_mentions=discord.AllowedMentions(replied_user=False)
                 )
 
-
     async def __aenter__(self) -> 'Loading':
         self._message = await self.ctx.reply(self._format_content(self.initial_message), mention_author=False)
         return self # Necessary to return instance for "as" statement
-
 
     async def __aexit__(self, exc_type: Any, exc: Exception, tb: TracebackType) -> None:
         with suppress(discord.HTTPException, AttributeError):
@@ -154,7 +150,6 @@ class ConfirmUI(discord.ui.View):
         super().__init__(timeout=timeout)
         self.value: bool = None
 
-
     @discord.ui.button(
         label='Confirm',
         style=discord.ButtonStyle.green,
@@ -163,7 +158,6 @@ class ConfirmUI(discord.ui.View):
     async def confirm(self, button: discord.ui.Button, interaction: discord.Interaction):
         self.value = True
         self.stop()
-
 
     @discord.ui.button(
         label='Cancel',
@@ -184,7 +178,6 @@ class Dropdown(discord.ui.Select):
             max_values=1,
             options=[discord.SelectOption(label=option, emoji=emote) for option, emote in zip(options, emotes)]
         )
-
 
     async def callback(self, interaction: discord.Interaction):
         self.view.stop()
