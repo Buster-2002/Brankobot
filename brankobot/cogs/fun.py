@@ -31,22 +31,20 @@ from pathlib import Path
 from textwrap import dedent, fill
 from typing import Union
 
-import dateparser
 import discord
 from discord.ext import commands
-from discord.utils import escape_markdown, format_dt, remove_markdown
-from humanize import intcomma, naturaldelta, ordinal, precisedelta
+from discord.utils import escape_markdown, remove_markdown
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageSequence
 
 from main import Bot, Context
 from .utils.checks import channel_check, is_moderator, role_check
 from .utils.enums import (BigRLDChannelType, BigRLDRoleType, Emote, GuildType,
                           SmallRLDChannelType, SmallRLDRoleType)
-from .utils.errors import (BirthdayAlreadyRegistered, BirthdayDoesntExist,
-                           NoBirthdays, NotAModerator)
+# from .utils.errors import (BirthdayAlreadyRegistered, BirthdayDoesntExist,
+#                            NoBirthdays, NotAModerator)
 from .utils.gif import save_transparent_gif
-from .utils.helpers import average, get_next_birthday
-from .utils.models import Birthday
+# from .utils.helpers import average, get_next_birthday
+# from .utils.models import Birthday
 
 
 class Fun(commands.Cog):
@@ -419,152 +417,152 @@ class Fun(commands.Cog):
         await ctx.send(f'https://strawpoll.com/{r["content_id"]}')
 
 
-    @role_check(BigRLDRoleType.member, BigRLDRoleType.onlyfans, SmallRLDRoleType.member)
-    @commands.cooldown(1, 300, commands.BucketType.user)
-    @commands.group(
-        invoke_without_command=True,
-        aliases=['bday', 'anniversary'],
-        usage='<birth_date (dd/mm/yyyy, dd-mm-yyyy or e.g 20 apr, 1889)>'
-    )
-    async def birthday(self, ctx: Context, birth_date: str):
-        '''Registers your birthday for brankobot to sell on the dark web (and to congratulate)'''
-        birth_date = dateparser.parse(birth_date, ['%d/%m/%Y', '%d-%m-%Y', '%-d %b, %Y'])
-        cursor = await self.bot.CONN.cursor()
-        try:
-            # Check if user isn't already in database
-            birthday = await self.bot.get_birthday(ctx.author.id)
-            if birthday is not None:
-                raise BirthdayAlreadyRegistered(birthday)
+    # @role_check(BigRLDRoleType.member, BigRLDRoleType.onlyfans, SmallRLDRoleType.member)
+    # @commands.cooldown(1, 300, commands.BucketType.user)
+    # @commands.group(
+    #     invoke_without_command=True,
+    #     aliases=['bday', 'anniversary'],
+    #     usage='<birth_date (dd/mm/yyyy, dd-mm-yyyy or e.g 20 apr, 1889)>'
+    # )
+    # async def birthday(self, ctx: Context, birth_date: str):
+    #     '''Registers your birthday for brankobot to sell on the dark web (and to congratulate)'''
+    #     birth_date = dateparser.parse(birth_date, ['%d/%m/%Y', '%d-%m-%Y', '%-d %b, %Y'])
+    #     cursor = await self.bot.CONN.cursor()
+    #     try:
+    #         # Check if user isn't already in database
+    #         birthday = await self.bot.get_birthday(ctx.author.id)
+    #         if birthday is not None:
+    #             raise BirthdayAlreadyRegistered(birthday)
 
-            # Since a user can only add his birthday once, we ask to confirm
-            if not await ctx.confirm(f'you can only add your birthday once, is {format_dt(birth_date, "D")} right?'):
-                return
+    #         # Since a user can only add his birthday once, we ask to confirm
+    #         if not await ctx.confirm(f'you can only add your birthday once, is {format_dt(birth_date, "D")} right?'):
+    #             return
 
-            # Add birthday to DB
-            insert_birthday_query = dedent('''
-                INSERT INTO birthdays (
-                    user_id,
-                    server_id,
-                    birthday_date
-                ) VALUES (
-                    ?, ?, ?
-                )
-            '''.strip())
+    #         # Add birthday to DB
+    #         insert_birthday_query = dedent('''
+    #             INSERT INTO birthdays (
+    #                 user_id,
+    #                 server_id,
+    #                 birthday_date
+    #             ) VALUES (
+    #                 ?, ?, ?
+    #             )
+    #         '''.strip())
 
-            await cursor.execute(
-                insert_birthday_query,
-                (
-                    ctx.author.id,
-                    ctx.guild.id,
-                    birth_date.strftime('%Y-%m-%d')
-                )
-            )
-            await self.bot.CONN.commit()
+    #         await cursor.execute(
+    #             insert_birthday_query,
+    #             (
+    #                 ctx.author.id,
+    #                 ctx.guild.id,
+    #                 birth_date.strftime('%Y-%m-%d')
+    #             )
+    #         )
+    #         await self.bot.CONN.commit()
 
-            next_birthday = get_next_birthday(birth_date)
-            await ctx.send_response(
-                f'ok {Emote.monocle}, i will maybe wish you a happy **{ordinal(next_birthday.year - birth_date.year)}** birthday {format_dt(next_birthday, "R")}',
-                title='Birthday Added',
-                show_invoke_speed=False
-            )
+    #         next_birthday = get_next_birthday(birth_date)
+    #         await ctx.send_response(
+    #             f'ok {Emote.monocle}, i will maybe wish you a happy **{ordinal(next_birthday.year - birth_date.year)}** birthday {format_dt(next_birthday, "R")}',
+    #             title='Birthday Added',
+    #             show_invoke_speed=False
+    #         )
 
-        finally:
-            await cursor.close()
+    #     finally:
+    #         await cursor.close()
 
-    @commands.cooldown(1, 300, commands.BucketType.user)
-    @birthday.command('info', aliases=['daysleft', 'show'])
-    async def birthday_info(self, ctx: Context):
-        '''Shows stuff about your own birthday'''
-        birthday: Birthday = await self.bot.get_birthday(ctx.author.id)
-        if not birthday:
-            raise BirthdayDoesntExist(ctx.author)
+    # @commands.cooldown(1, 300, commands.BucketType.user)
+    # @birthday.command('info', aliases=['daysleft', 'show'])
+    # async def birthday_info(self, ctx: Context):
+    #     '''Shows stuff about your own birthday'''
+    #     birthday: Birthday = await self.bot.get_birthday(ctx.author.id)
+    #     if not birthday:
+    #         raise BirthdayDoesntExist(ctx.author)
 
-        next_birthday = get_next_birthday(birthday.date)
-        now = datetime.now()
-        age = now - birthday.date
-        msg = dedent(f'''
-            **Current age:** {precisedelta(age)} old
+    #     next_birthday = get_next_birthday(birthday.date)
+    #     now = datetime.now()
+    #     age = now - birthday.date
+    #     msg = dedent(f'''
+    #         **Current age:** {precisedelta(age)} old
 
-            Your **{ordinal(next_birthday.year - birthday.date.year)}** birthday will be in {precisedelta(now - next_birthday, minimum_unit='minutes')} on {format_dt(next_birthday, 'F')}
-        ''')
-        fields = [
-            ('Months', intcomma(round((now.year - birthday.date.year) * 12 + now.month - birthday.date.month))),
-            ('Weeks', intcomma(round(age.days / 7))),
-            ('Days', intcomma(age.days)),
-            ('Hours', intcomma(round(age.total_seconds() / (60 * 60)))),
-            ('Minutes', intcomma(round(age.total_seconds() / 60))),
-            ('Seconds', intcomma(round(age.total_seconds())))
-        ]
-        await ctx.send_response(
-            msg,
-            fields=fields,
-            title='Birthday Info'
-        )
+    #         Your **{ordinal(next_birthday.year - birthday.date.year)}** birthday will be in {precisedelta(now - next_birthday, minimum_unit='minutes')} on {format_dt(next_birthday, 'F')}
+    #     ''')
+    #     fields = [
+    #         ('Months', intcomma(round((now.year - birthday.date.year) * 12 + now.month - birthday.date.month))),
+    #         ('Weeks', intcomma(round(age.days / 7))),
+    #         ('Days', intcomma(age.days)),
+    #         ('Hours', intcomma(round(age.total_seconds() / (60 * 60)))),
+    #         ('Minutes', intcomma(round(age.total_seconds() / 60))),
+    #         ('Seconds', intcomma(round(age.total_seconds())))
+    #     ]
+    #     await ctx.send_response(
+    #         msg,
+    #         fields=fields,
+    #         title='Birthday Info'
+    #     )
 
-    @birthday.command('remove', aliases=['delete', 'del'])
-    async def birthday_remove(self, ctx: Context, user: Union[discord.User, discord.Object]):
-        '''Removes a birthday from database'''
-        birthday: Birthday = await self.bot.get_birthday(user.id)
-        if not birthday:
-            raise BirthdayDoesntExist(user)
+    # @birthday.command('remove', aliases=['delete', 'del'])
+    # async def birthday_remove(self, ctx: Context, user: Union[discord.User, discord.Object]):
+    #     '''Removes a birthday from database'''
+    #     birthday: Birthday = await self.bot.get_birthday(user.id)
+    #     if not birthday:
+    #         raise BirthdayDoesntExist(user)
 
-        if not await is_moderator(ctx):
-            raise NotAModerator()
+    #     if not await is_moderator(ctx):
+    #         raise NotAModerator()
 
-        if not await ctx.confirm('are you sure?'):
-            return
+    #     if not await ctx.confirm('are you sure?'):
+    #         return
 
-        await self.bot.delete_birthday(user.id)
-        await ctx.send_response(
-            f'Removed birthday {format_dt(birthday.date, "d")} belonging to {self.bot.get_user(birthday.user_id)}',
-            title='Birthday Removed'
-        )
+    #     await self.bot.delete_birthday(user.id)
+    #     await ctx.send_response(
+    #         f'Removed birthday {format_dt(birthday.date, "d")} belonging to {self.bot.get_user(birthday.user_id)}',
+    #         title='Birthday Removed'
+    #     )
 
-    @commands.cooldown(1, 300, commands.BucketType.user)
-    @birthday.command('average', aliases=['averageage'])
-    async def birthday_average(self, ctx: Context):
-        '''Shows the average age in current server'''
-        cursor = await self.bot.CONN.cursor()
-        try:
-            select_birthdays_query = dedent('''
-                SELECT *
-                FROM birthdays
-                WHERE server_id = ?;
-            '''.strip())
+    # @commands.cooldown(1, 300, commands.BucketType.user)
+    # @birthday.command('average', aliases=['averageage'])
+    # async def birthday_average(self, ctx: Context):
+    #     '''Shows the average age in current server'''
+    #     cursor = await self.bot.CONN.cursor()
+    #     try:
+    #         select_birthdays_query = dedent('''
+    #             SELECT *
+    #             FROM birthdays
+    #             WHERE server_id = ?;
+    #         '''.strip())
 
-            result = await cursor.execute(
-                select_birthdays_query,
-                (ctx.guild.id,)
-            )
-            rows = await result.fetchall()
+    #         result = await cursor.execute(
+    #             select_birthdays_query,
+    #             (ctx.guild.id,)
+    #         )
+    #         rows = await result.fetchall()
 
-            if rows:
-                today = date.today()
-                dates = [
-                    date(year=year, month=month, day=day)
-                    for year, month, day in [
-                        map(int, row[3].split('-'))
-                        for row in rows
-                    ]
-                ]
-                average_age = average([
-                    today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
-                    for birth_date in dates
-                ])
-                msg = dedent(f'''
-                    The average age in **{ctx.guild.name}** is {average_age:.2f} years.
-                    The oldest person is {naturaldelta(today - min(dates))} old and the youngest is {naturaldelta(today - max(dates))} old.
-                ''')
-                await ctx.send_response(
-                    msg,
-                    title='Average Age'
-                )
+    #         if rows:
+    #             today = date.today()
+    #             dates = [
+    #                 date(year=year, month=month, day=day)
+    #                 for year, month, day in [
+    #                     map(int, row[3].split('-'))
+    #                     for row in rows
+    #                 ]
+    #             ]
+    #             average_age = average([
+    #                 today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
+    #                 for birth_date in dates
+    #             ])
+    #             msg = dedent(f'''
+    #                 The average age in **{ctx.guild.name}** is {average_age:.2f} years.
+    #                 The oldest person is {naturaldelta(today - min(dates))} old and the youngest is {naturaldelta(today - max(dates))} old.
+    #             ''')
+    #             await ctx.send_response(
+    #                 msg,
+    #                 title='Average Age'
+    #             )
 
-            else:
-                raise NoBirthdays()
+    #         else:
+    #             raise NoBirthdays()
 
-        finally:
-            await cursor.close()
+    #     finally:
+    #         await cursor.close()
 
 
     @commands.group(invoke_without_command=True)
