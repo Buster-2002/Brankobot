@@ -37,14 +37,7 @@ class NewHelpCommand(commands.HelpCommand):
     def __init__(self):
         super().__init__(command_attrs={
             'help': 'Shows help for the bot, commands and categories',
-            'hidden': True,
-            'checks': [lambda ctx: ctx.channel.id in {
-                BigRLDChannelType.bot.value,
-                SmallRLDChannelType.bot.value,
-                764801756680290335,
-                859739694635679794,
-                963752302475370496
-            }]
+            'hidden': True
         })
 
 
