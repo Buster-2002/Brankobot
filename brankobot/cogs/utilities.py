@@ -46,9 +46,9 @@ from .utils.enums import BigRLDRoleType, Emote, SmallRLDRoleType, try_enum
 from .utils.errors import (CommandDoesntExist, CommandExists,
                            InvalidCommandContent, NoCustomCommands,
                            NoReminders, NotCommandOwner, NotReminderOwner,
-                           ReminderDoesntExist)
-from .utils.models import CustomCommand, Reminder
-from .utils.paginators import CustomCommandsPaginator, ReminderPaginator
+                           ReminderDoesntExist, AlreadyBlacklisted, NotBlacklisted, NoBlacklistedUsers)
+from .utils.models import BlacklistedUser, CustomCommand, Reminder
+from .utils.paginators import CustomCommandsPaginator, ReminderPaginator, BlacklistPaginator
 
 
 class Utilities(commands.Cog):
@@ -236,6 +236,121 @@ class Utilities(commands.Cog):
             image=user.banner
         )
 
+    
+    @role_check(BigRLDRoleType.xo)
+    @commands.group(
+        'blacklist',
+        invoke_without_command=True,
+        aliases=['jewlist'],
+    )
+    async def blacklist(self, _):
+        '''Base command for blacklisting/unblacklisting/listing users'''
+
+    @role_check(BigRLDRoleType.xo)
+    @blacklist.command('add', aliases=['append'])
+    async def blacklist_add(self, ctx: Context, user: Union[discord.User, discord.Object]):
+        '''Adds a user to the blacklist which blocks them from using the bot'''
+        cursor = await self.bot.CONN.cursor()
+        try:
+            blacklisted_user = await self.bot.get_blacklisted_user(user.id)
+            if blacklisted_user is not None:
+                raise AlreadyBlacklisted(user.id)
+
+            insert_blacklisted_user_query = dedent('''
+                INSERT INTO blacklisted_users (
+                    user_id,
+                    blacklisted_at_timestamp,
+                    blacklisted_by_id
+                ) VALUES (
+                    ?, ?, ?
+                );
+            '''.strip())
+
+            await cursor.execute(
+                insert_blacklisted_user_query,
+                (
+                    user.id,
+                    ctx.message.created_at.timestamp(),
+                    ctx.author.id
+                )
+            )
+            await self.bot.CONN.commit()
+
+            await ctx.send_response(
+                f'okay, the user {user.mention} (with ID {user.id}) is now ignored completely by brankobot',
+                title='User Blacklisted'
+            )
+
+        finally:
+            await cursor.close()
+
+    @role_check(BigRLDRoleType.xo)
+    @blacklist.command('remove', aliases=['delete'])
+    async def blacklist_remove(self, ctx: Context, user: Union[discord.User, discord.Object]):
+        '''Removes a user from the blacklist which allows them to use the bot again'''
+        cursor= await self.bot.CONN.cursor()
+        try: 
+            blacklisted_user = await self.bot.get_blacklisted_user(user.id)
+            if blacklisted_user is None:
+                raise NotBlacklisted(user.id)
+
+            if not await ctx.confirm(f'are you sure you want to remove {user} from the blacklist?'):
+                return
+
+            delete_blacklisted_user_query = dedent('''
+                DELETE
+                FROM blacklisted_users
+                WHERE id = ?;
+            '''.strip())
+
+            await cursor.execute(
+                delete_blacklisted_user_query,
+                (blacklisted_user.id,)
+            )
+            await self.bot.CONN.commit()
+
+            await ctx.send_response(
+                f'removed {user} from brankobots blacklist',
+                title='User Unblacklisted'
+            )
+
+        finally:
+            await cursor.close()
+
+    @blacklist.command('list', aliases=['all'])
+    async def blacklist_list(self, ctx: Context):
+        '''Lists all users that are on the brankobot blacklist'''
+        cursor = await self.bot.CONN.cursor()
+        try:
+            select_blacklisted_users_query = dedent('''
+                SELECT *
+                FROM blacklisted_users
+            '''.strip())
+
+            result = await cursor.execute(select_blacklisted_users_query)
+            rows = await result.fetchall()
+
+            if rows:
+                blacklisted_users = [BlacklistedUser(*r) for r in rows]
+                sorted_data = sorted(
+                    blacklisted_users,
+                    key=lambda item: item.blacklisted_at,
+                    reverse=True
+                )
+                pages = ViewMenuPages(
+                    source=BlacklistPaginator(
+                        sorted_data,
+                        ctx
+                    ), clear_reactions_after=True
+                )
+                await pages.start(ctx)
+
+            else:
+                raise NoBlacklistedUsers()
+
+        finally:
+            await cursor.close()
+        
 
     @commands.group(
         'reminder',
@@ -599,6 +714,7 @@ class Utilities(commands.Cog):
                     ), clear_reactions_after=True
                 )
                 await pages.start(ctx)
+
             else:
                 raise NoCustomCommands(user)
 
