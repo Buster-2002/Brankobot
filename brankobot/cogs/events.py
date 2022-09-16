@@ -41,14 +41,14 @@ from discord import __version__ as dcversion
 from discord.ext import commands, tasks
 from discord.utils import format_dt
 from humanize import naturaldelta
-from humanize.number import ordinal
 from main import Bot, Context
 from main import __version__ as botversion
 
 from .utils.enums import (BigRLDChannelType, Emote, GuildType,
                           SmallRLDChannelType, try_enum)
 from .utils.errors import *
-from .utils.models import Achievement, Birthday, Reminder, Tank
+from .utils.errors import NotBlacklisted
+from .utils.models import Achievement, Reminder, Tank
 
 
 class Events(commands.Cog):
@@ -188,13 +188,15 @@ class Events(commands.Cog):
                 )
 
             # Create database connection
+            print('-' * 75)
+            print('[*] Creating DB connection...')
             self.bot.CONN = conn = await aiosqlite.connect(Path('assets/data/database.db'))
             cursor = await conn.cursor()
 
             # Create tables
             try:
                 print('-' * 75)
-                print('[*] Creating DB connection...')
+                print('[*] Creating DB tables...')
 
                 # Create custom commands table if it doesn't yet exist
                 create_cc_table_query = dedent('''
@@ -205,6 +207,18 @@ class Events(commands.Cog):
                         creation_timestamp REAL NOT NULL,
                         name               TEXT NOT NULL,
                         content            TEXT NOT NULL
+                    );
+                '''.strip())
+                await cursor.execute(create_cc_table_query)
+                await conn.commit()
+
+                # Create blacklisted users table if it doesn't yet exist
+                create_cc_table_query = dedent('''
+                    CREATE TABLE IF NOT EXISTS blacklisted_users (
+                        id                       INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
+                        user_id                  INTEGER NOT NULL,
+                        blacklisted_at_timestamp REAL NOT NULL,
+                        blacklisted_by_id        INTEGER NOT NULL
                     );
                 '''.strip())
                 await cursor.execute(create_cc_table_query)
@@ -225,17 +239,17 @@ class Events(commands.Cog):
                 await cursor.execute(create_reminder_table_query)
                 await conn.commit()
 
-                # Create birthdays table it doesn't yet exist
-                create_birthday_table_query = dedent('''
-                    CREATE TABLE IF NOT EXISTS birthdays (
-                        id            INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
-                        user_id       INTEGER NOT NULL,
-                        server_id     INTEGER NOT NULL,
-                        birthday_date TEXT NOT NULL
-                    );
-                '''.strip())
-                await cursor.execute(create_birthday_table_query)
-                await conn.commit()
+                # # Create birthdays table it doesn't yet exist
+                # create_birthday_table_query = dedent('''
+                #     CREATE TABLE IF NOT EXISTS birthdays (
+                #         id            INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
+                #         user_id       INTEGER NOT NULL,
+                #         server_id     INTEGER NOT NULL,
+                #         birthday_date TEXT NOT NULL
+                #     );
+                # '''.strip())
+                # await cursor.execute(create_birthday_table_query)
+                # await conn.commit()
 
                 print('-' * 75)
                 print('[*] Loading reminders...')
@@ -255,7 +269,7 @@ class Events(commands.Cog):
                         self.bot.loop.create_task(self.bot.start_timer(reminder))
 
                 # Starting birthday task
-                self.check_birthdays.start()
+                # self.check_birthdays.start()
 
                 self.bot.BEEN_READY = True
                 print('-' * 75)
@@ -268,44 +282,44 @@ class Events(commands.Cog):
                 await cursor.close()
 
 
-    @tasks.loop(time=datetime.time(hour=7))
-    async def check_birthdays(self):
-        '''Checks for birthdays every day at 07:00 UTC / 08:00 CET / 09:00 CEST (winter)'''
-        logger = logging.getLogger('brankobot')
-        logger.info('Checking for birthdays...')
+    # @tasks.loop(time=datetime.time(hour=7))
+    # async def check_birthdays(self):
+    #     '''Checks for birthdays every day at 07:00 UTC / 08:00 CET / 09:00 CEST (winter)'''
+    #     logger = logging.getLogger('brankobot')
+    #     logger.info('Checking for birthdays...')
 
-        cursor = await self.bot.CONN.cursor()
-        try:
-            select_birthdays_query = dedent('''
-                SELECT *
-                FROM birthdays;
-            '''.strip())
+    #     cursor = await self.bot.CONN.cursor()
+    #     try:
+    #         select_birthdays_query = dedent('''
+    #             SELECT *
+    #             FROM birthdays;
+    #         '''.strip())
 
-            result = await cursor.execute(select_birthdays_query)
-            rows = await result.fetchall()
+    #         result = await cursor.execute(select_birthdays_query)
+    #         rows = await result.fetchall()
 
-            if rows:
-                today = datetime.date.today()
-                birthdays = [Birthday(*r) for r in rows]
-                for birthday in birthdays:
-                    # Only proceed if today is actually the day...
-                    if (today.month, today.day) == (birthday.date.month, birthday.date.day):
-                        server_id = birthday.server_id
-                        channel_id = None
+    #         if rows:
+    #             today = datetime.date.today()
+    #             birthdays = [Birthday(*r) for r in rows]
+    #             for birthday in birthdays:
+    #                 # Only proceed if today is actually the day...
+    #                 if (today.month, today.day) == (birthday.date.month, birthday.date.day):
+    #                     server_id = birthday.server_id
+    #                     channel_id = None
 
-                        if server_id is GuildType.big_rld.value:
-                            channel_id = BigRLDChannelType.classified.value
-                        elif server_id is GuildType.small_rld.value:
-                            channel_id = SmallRLDChannelType.classified.value
+    #                     if server_id is GuildType.big_rld.value:
+    #                         channel_id = BigRLDChannelType.classified.value
+    #                     elif server_id is GuildType.small_rld.value:
+    #                         channel_id = SmallRLDChannelType.classified.value
 
-                        if channel_id:
-                            channel = self.bot.get_channel(channel_id)
-                            user = self.bot.get_user(birthday.user_id)
-                            await channel.send(f'{Emote.tada} it\'s {user.mention}\'s **{ordinal(today.year - birthday.date.year)}** birthday {Emote.cake}!')
-                            await channel.send(str(Emote.feels_birthday_man))
+    #                     if channel_id:
+    #                         channel = self.bot.get_channel(channel_id)
+    #                         user = self.bot.get_user(birthday.user_id)
+    #                         await channel.send(f'{Emote.tada} it\'s {user.mention}\'s **{ordinal(today.year - birthday.date.year)}** birthday {Emote.cake}!')
+    #                         await channel.send(str(Emote.feels_birthday_man))
 
-        finally:
-            await cursor.close()
+    #     finally:
+    #         await cursor.close()
 
 
     @commands.Cog.listener()
@@ -437,9 +451,9 @@ class Events(commands.Cog):
                         )
                         await self.bot.CONN.commit()
 
-                        # mute spinee in -RLD- server because he is a faggot, when shut up command is used (>su or >suu)
-                        if command.name in {'su', 'suu'} and guild.id == GuildType.big_rld:
-                            spinkel = guild.get_member(859412261994364968)
+                        # mute spinee in -RLD- server because he is a faggot, when the shut up command is used (>su or >suu)
+                        if command.name in {'su', 'suu'} and guild.id == GuildType.big_rld.value:
+                            spinkel = guild.get_member(140583155852771328)
                             if not spinkel.is_timed_out():
                                 await spinkel.timeout(datetime.timedelta(seconds=30))
                                 logger.info(f'"{author}" timed out spinee using ">{command.name}" in #{channel}')
@@ -537,11 +551,11 @@ class Events(commands.Cog):
                     if reminder.channel_id in text_channels:
                         await self.bot.delete_reminder(reminder)
 
-            # Removing birthday
-            birthday = await self.bot.get_birthday(member.id)
-            if birthday:
-                if member.guild.id == birthday.server_id:
-                    await self.bot.delete_birthday(member.id)
+            # # Removing birthday
+            # birthday = await self.bot.get_birthday(member.id)
+            # if birthday:
+            #     if member.guild.id == birthday.server_id:
+            #         await self.bot.delete_birthday(member.id)
 
         finally:
             await cursor.close()
@@ -584,18 +598,18 @@ class Events(commands.Cog):
         if isinstance(error, commands.CommandNotFound):
             return
 
-        # birthday errors
-        elif isinstance(error, BirthdayDoesntExist):
-            exc = f'{error.user} has no birthday registered'
+        # # birthday errors
+        # elif isinstance(error, BirthdayDoesntExist):
+        #     exc = f'{error.user} has no birthday registered'
 
-        elif isinstance(error, NoBirthdays):
-            exc = 'no people have registered their birthday in this server'
+        # elif isinstance(error, NoBirthdays):
+        #     exc = 'no people have registered their birthday in this server'
 
-        elif isinstance(error, NotAModerator):
-            exc = 'sorry, only xo\'s/po\'s/co\'s can remove birthdays from the database to prevent spamming'
+        # elif isinstance(error, NotAModerator):
+        #     exc = 'sorry, only xo\'s/po\'s/co\'s can remove birthdays from the database to prevent spamming'
 
-        elif isinstance(error, BirthdayAlreadyRegistered):
-            exc = f'you have already registered your birthday ({format_dt(error.birthday.date)}) in {self.bot.get_guild(error.birthday.server_id)}'
+        # elif isinstance(error, BirthdayAlreadyRegistered):
+        #     exc = f'you have already registered your birthday ({format_dt(error.birthday.date)}) in {self.bot.get_guild(error.birthday.server_id)}'
 
         # music errors
         elif isinstance(error, VoiceChannelError):
@@ -612,6 +626,16 @@ class Events(commands.Cog):
 
         elif isinstance(error, InvalidVolume):
             exc = f'{error.volume}% is not valid, pick a number between 0 and 100'
+
+        # Blacklist errors
+        elif isinstance(error, AlreadyBlacklisted):
+            exc = f'the user with ID {error.user_id} has already been blacklisted'
+
+        elif isinstance(error, NotBlacklisted):
+            exc = f'the user with ID {error.user_id} has not been blacklisted before'
+
+        elif isinstance(error, NoBlacklistedUsers):
+            exc = f'there are no users that are currently on the brankobot blacklist'
 
         # Reminder errors
         elif isinstance(error, NoTimeFound):
@@ -663,7 +687,7 @@ class Events(commands.Cog):
             exc = f'you forgot to close quotes with {error.close_quote}, which causes the command parser to not know what the fuck it is doing'
 
         elif isinstance(error, commands.CheckFailure):
-            exc = 'you can only use `help` in #bot'
+            pass # means the blacklist check failed, so we do nothing
 
         elif isinstance(error, ReplayError):
             exc = f'something went wrong: {error.message}'
