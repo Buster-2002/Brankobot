@@ -304,8 +304,15 @@ class Bot(commands.Bot):
         }
 
 
-    async def not_blacklisted_check(self, ctx) -> bool:
-        '''Checks if the user invoking the command isn't on the Brankobot blacklist'''
+    async def is_blacklisted(self, user) -> bool:
+        """Checks whether the user has been blacklisted from using the bot
+
+        Args:
+            user (discord.Member): The user we want to check is blacklisted
+
+        Returns:
+            bool: True if the user is blacklisted, False if he is not
+        """        
         cursor = await self.CONN.cursor()
         try:
             select_blacklisted_user_ids_query = dedent('''
@@ -316,13 +323,18 @@ class Bot(commands.Bot):
             result = await cursor.execute(select_blacklisted_user_ids_query)
             ids = {r[0] for r in await result.fetchall()}
 
-            if ctx.author.id in ids:
-                return False
+            if user.id in ids:
+                return True # is blacklisted
 
-            return True
+            return False
 
         finally:
             await cursor.close()
+
+
+    async def not_blacklisted_check(self, ctx: Context) -> bool:
+        '''Checks if the user invoking the command isn't on the Brankobot blacklist'''
+        return not (await self.is_blacklisted(ctx.author))
 
 
     async def on_socket_raw_send(self, _: bytes):

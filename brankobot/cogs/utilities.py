@@ -317,7 +317,7 @@ class Utilities(commands.Cog):
         finally:
             await cursor.close()
 
-    @blacklist.command('list', aliases=['all'])
+    @blacklist.command('list', aliases=['all', 'show'])
     async def blacklist_list(self, ctx: Context):
         '''Lists all users that are on the brankobot blacklist'''
         cursor = await self.bot.CONN.cursor()
@@ -403,7 +403,7 @@ class Utilities(commands.Cog):
         finally:
             await cursor.close()
 
-    @_reminder.command('list')
+    @_reminder.command('list', aliases=['all', 'show'])
     async def _reminder_list(self, ctx: Context):
         '''Lists your reminders'''
         cursor = await self.bot.CONN.cursor()
@@ -682,7 +682,7 @@ class Utilities(commands.Cog):
         finally:
             await cursor.close()
 
-    @cc.command('list', aliases=['all'])
+    @cc.command('list', aliases=['all', 'show'])
     async def cc_list(self, ctx: Context, user: discord.User = None):
         '''Shows custom commands sorted by usage, optionally filtering by a user'''
         cursor = await self.bot.CONN.cursor()

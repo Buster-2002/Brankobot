@@ -24,6 +24,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 '''
 
+import asyncio
 import datetime
 import json
 import logging
@@ -384,38 +385,42 @@ class Events(commands.Cog):
         if author == self.bot.user or self.bot.BEEN_READY is False:
             return
 
+        # Ignore blacklisted users
+        if (await self.bot.is_blacklisted(message.author)) is True:
+            return
+
         # Remove links if necessary
-        if len(author.roles) == 1:
+        if len(author.roles) == 1: # Means user only has the @everyone "role"
             if self.url_regex.search(content) is not None:
                 await message.delete()
 
         # -- fxtwitter domain doesnt work anymore -- #
-        # # Resend twitter status with new website that has a embed that works (fxtwitter)
-        # elif matches := self.twitter_url_regex.findall(content):
-        #     formatted = [f'https://fxtwitter.com/{handle}/status/{status_id}' for handle, status_id in matches]
-        #     text = f'Working (video) embed{"s"[:len(formatted)^1]}:\n' + '\n'.join(formatted)
-        #     message = await message.reply(
-        #         content=text + '\n(react with ❌ to delete this message):',
-        #         allowed_mentions=AllowedMentions(replied_user=False)
-        #     )
+        # Resend twitter status with new website that has a embed that works (fxtwitter)
+        elif matches := self.twitter_url_regex.findall(content):
+            formatted = [f'https://vxtwitter.com/{handle}/status/{status_id}' for handle, status_id in matches]
+            text = f'Working (video) embed{"s"[:len(formatted)^1]}:\n' + '\n'.join(formatted)
+            message = await message.reply(
+                content=text + '\n(react with ❌ to delete this message):',
+                allowed_mentions=discord.AllowedMentions(replied_user=False)
+            )
 
-        #     # Delete reacted message if author of original reacts with ❌ within 15 sec
-        #     await message.add_reaction('❌')
-        #     try:
-        #         await self.bot.wait_for(
-        #             'reaction_add',
-        #             check=lambda r, u: u == author and str(r) == '❌' and r.message == message,
-        #             timeout=15
-        #         )
-        #         await message.delete()
+            # Delete reacted message if author of original reacts with ❌ within 15 sec
+            await message.add_reaction('❌')
+            try:
+                await self.bot.wait_for(
+                    'reaction_add',
+                    check=lambda r, u: u == author and str(r) == '❌' and r.message == message,
+                    timeout=15
+                )
+                await message.delete()
 
-        #     # Cooldown ran out so edit the message to remove 'react with ..' and remove reaction
-        #     except asyncio.TimeoutError:
-        #         await message.remove_reaction('❌', self.bot.user)
-        #         await message.edit(
-        #             content=text,
-        #             allowed_mentions=AllowedMentions(replied_user=False)
-        #         )
+            # Cooldown ran out so edit the message to remove 'react with ..' and remove reaction
+            except asyncio.TimeoutError:
+                await message.remove_reaction('❌', self.bot.user)
+                await message.edit(
+                    content=text,
+                    allowed_mentions=discord.AllowedMentions(replied_user=False)
+                )
 
         # React to being mentioned
         elif self.bot.user in message.mentions:
