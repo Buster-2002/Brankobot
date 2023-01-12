@@ -276,7 +276,7 @@ class Fun(commands.Cog):
     @commands.command()
     async def offline(self, ctx: Context):
         '''Sends an MP3 if Joc666 is offline'''
-        guild = self.bot.get_guild(GuildType.big_rld)
+        guild = self.bot.get_guild(GuildType.big_rld.value)
         if guild:
             user = guild.get_member(234023954522701824)
         if not user.status is discord.Status.offline:
