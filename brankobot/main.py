@@ -87,11 +87,12 @@ def get_prefix(_bot: commands.Bot, _message: discord.Message) -> commands.when_m
     commands.when_mentioned_or
         Allows for the bot to be mentioned, as well as the prefixes to be used
     '''
-    prefixes = (
-        '?',
-        '.',
-        'branko '
-    )
+    prefixes = ('!.',)
+    # prefixes = (
+    #     '?',
+    #     '.',
+    #     'branko '
+    # )
 
     return commands.when_mentioned_or(*prefixes)(_bot, _message)
 
@@ -303,7 +304,7 @@ class Bot(commands.Bot):
             'cogs.music',
             'cogs.misc'
         }
-        self.PERSONALITY = "Your name is brankobot. Answer the following prompt nonchalantly and impolite, without using proper punctuation."
+        self.PERSONALITY = "Your name is brankobot. Answer the following in a nonchalant and impolite manner, without using proper punctuation: "
 
 
     async def is_blacklisted(self, user) -> bool:
