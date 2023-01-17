@@ -56,3 +56,13 @@ class TankStatFlags(FlagConverter, case_insensitive=True):
 class RequirementsFlags(FlagConverter, case_insensitive=True):
     region: RegionConverter = Region.eu
     moe_days: int = commands.flag(aliases=['moedays'], default=15)
+
+
+class OpenAIFlags(FlagConverter, case_insensitive=True):
+    context: str = commands.flag(aliases=['c'], default='')
+    personality: str = commands.flag(aliases=['p'], default=None)
+    temperature: int = commands.flag(aliases=['temp'], default=0.9)
+    max_tokens: int = commands.flag(aliases=['maxtokens'], default=500)
+    model: str = commands.flag(aliases=['m'], default='text-davinci-003')
+    presence_penalty: float = commands.flag(aliases=['presencepenalty'], default=0.0)
+    frequency_penalty: float = commands.flag(aliases=['frequencypenalty'], default=0.0)
