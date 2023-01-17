@@ -24,7 +24,6 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 '''
 import random
-from datetime import date, datetime
 from functools import partial
 from io import BytesIO
 from pathlib import Path
@@ -32,12 +31,13 @@ from textwrap import dedent, fill
 from typing import Union
 
 import discord
+import openai
 from discord.ext import commands
 from discord.utils import escape_markdown, remove_markdown
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageSequence
 
 from main import Bot, Context
-from .utils.checks import channel_check, is_moderator, role_check
+from .utils.checks import channel_check, role_check
 from .utils.enums import (BigRLDChannelType, BigRLDRoleType, Emote, GuildType,
                           SmallRLDChannelType, SmallRLDRoleType)
 # from .utils.errors import (BirthdayAlreadyRegistered, BirthdayDoesntExist,
@@ -45,6 +45,7 @@ from .utils.enums import (BigRLDChannelType, BigRLDRoleType, Emote, GuildType,
 from .utils.gif import save_transparent_gif
 # from .utils.helpers import average, get_next_birthday
 # from .utils.models import Birthday
+from .utils.flags import OpenAIFlags
 
 
 class Fun(commands.Cog):
@@ -342,6 +343,26 @@ class Fun(commands.Cog):
         except KeyError:
             msg = f'Word {query} not found'
         await ctx.send_response(msg, title='Urban Dictionary')
+
+
+    @commands.is_owner()
+    @commands.command()
+    async def ask(self, ctx: Context, prompt: commands.clean_content, *, flags: OpenAIFlags):
+        '''Ask the bot a question using the OpenAI text-davinci 3 model'''
+        openai.api_key = self.bot.OPENAI_API_TOKEN
+
+        if flags.personality is None:
+            flags.personality = self.bot.PERSONALITY
+
+        answer = openai.Completion.create(
+            prompt=flags.personality + ' ' + flags.context + ' ' + prompt,
+            temperature=flags.temperature,
+            max_tokens=flags.max_tokens,
+            model=flags.model,
+            presence_penalty=flags.presence_penalty,
+            frequency_penalty=flags.frequency_penalty,
+        )
+        await ctx.send(answer["choices"][0]["text"].strip(" \n"))
 
 
     @channel_check(BigRLDChannelType.memes, SmallRLDChannelType.memes)
