@@ -113,6 +113,7 @@ def channel_check(*additional_channels: Tuple[Union[BigRLDChannelType, SmallRLDC
 
 def role_check(*roles: Tuple[Union[BigRLDRoleType, SmallRLDRoleType]]) -> commands.check:
     '''Returns whether the command that is about to be invoked, is invoked by a user with one of the allowed roles
+    By default this checks for the Friends and Member roles
 
     Parameters
     ----------
@@ -122,7 +123,7 @@ def role_check(*roles: Tuple[Union[BigRLDRoleType, SmallRLDRoleType]]) -> comman
     Returns
     -------
     commands.check
-        The check
+        The check requiring context
     '''
     role_types = roles or (
         BigRLDRoleType.friends,
