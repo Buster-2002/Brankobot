@@ -284,6 +284,7 @@ class Bot(commands.Bot):
         self.BEEN_READY = False
         self.DISCORD_API_TOKEN = os.getenv('DISCORD_TOKEN')
         self.WOT_API_TOKEN = os.getenv('WOT_TOKEN')
+        self.OPENAI_API_TOKEN = os.getenv('OPENAI_TOKEN')
         self.START_TIME = datetime.now()
         self.REMINDER_TASKS = {}
         self.MUSIC_PLAYERS = {}
@@ -302,6 +303,7 @@ class Bot(commands.Bot):
             'cogs.music',
             'cogs.misc'
         }
+        self.PERSONALITY = "Your name is brankobot. Answer the following prompt nonchalantly and impolite, without using proper punctuation."
 
 
     async def is_blacklisted(self, user) -> bool:
