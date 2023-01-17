@@ -394,8 +394,7 @@ class Events(commands.Cog):
             if self.url_regex.search(content) is not None:
                 await message.delete()
 
-        # -- fxtwitter domain doesnt work anymore -- #
-        # Resend twitter status with new website that has a embed that works (fxtwitter)
+        # Resend twitter status with new website that has a embed that works (vxtwitter)
         elif matches := self.twitter_url_regex.findall(content):
             formatted = [f'https://vxtwitter.com/{handle}/status/{status_id}' for handle, status_id in matches]
             text = f'Working (video) embed{"s"[:len(formatted)^1]}:\n' + '\n'.join(formatted)
@@ -410,7 +409,7 @@ class Events(commands.Cog):
                 await self.bot.wait_for(
                     'reaction_add',
                     check=lambda r, u: u == author and str(r) == '❌' and r.message == message,
-                    timeout=15
+                    timeout=30
                 )
                 await message.delete()
 
