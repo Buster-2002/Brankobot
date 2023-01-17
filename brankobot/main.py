@@ -304,7 +304,7 @@ class Bot(commands.Bot):
             'cogs.music',
             'cogs.misc'
         }
-        self.PERSONALITY = "Your name is brankobot. Answer the following in a nonchalant and impolite manner, without using proper punctuation: "
+        self.PERSONALITY = 'Your name is brankobot. Answer the following question in a nonchalant, impolite and politically incorrect manner without using proper punctuation: '
 
 
     async def is_blacklisted(self, user) -> bool:
