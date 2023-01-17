@@ -273,7 +273,7 @@ class Fun(commands.Cog):
 
 
     @role_check()
-    @commands.cooldown(1, 60, commands.BucketType.guild)
+    @commands.cooldown(1, 60 * 15, commands.BucketType.guild)
     @commands.command()
     async def offline(self, ctx: Context):
         '''Sends an MP3 if Joc666 is offline'''
@@ -346,8 +346,8 @@ class Fun(commands.Cog):
 
 
     @commands.is_owner()
-    @commands.command()
-    async def ask(self, ctx: Context, prompt: commands.clean_content, *, flags: OpenAIFlags):
+    @commands.command(aliases=['adminai', 'adminaskai'])
+    async def adminask(self, ctx: Context, prompt: commands.clean_content, *, flags: OpenAIFlags):
         '''Ask the bot a question using the OpenAI text-davinci 3 model'''
         openai.api_key = self.bot.OPENAI_API_TOKEN
 
@@ -361,6 +361,21 @@ class Fun(commands.Cog):
             model=flags.model,
             presence_penalty=flags.presence_penalty,
             frequency_penalty=flags.frequency_penalty,
+        )
+        await ctx.send(answer["choices"][0]["text"].strip(" \n"))
+
+
+    @role_check(BigRLDRoleType.member, SmallRLDRoleType.member)
+    @commands.command(aliases=['ai', 'askai'])
+    async def ask(self, ctx: Context, *, prompt: commands.clean_content):
+        '''Ask the bot a question using the OpenAI text-davinci 3 model'''
+        openai.api_key = self.bot.OPENAI_API_TOKEN
+
+        answer = openai.Completion.create(
+            prompt=self.bot.PERSONALITY + prompt,
+            temperature=0.6,
+            max_tokens=400,
+            model='text-davinci-003'
         )
         await ctx.send(answer["choices"][0]["text"].strip(" \n"))
 
@@ -393,7 +408,7 @@ class Fun(commands.Cog):
 
 
     @role_check(BigRLDRoleType.member, BigRLDRoleType.onlyfans, SmallRLDRoleType.member)
-    @commands.cooldown(1, 300, commands.BucketType.guild)
+    @commands.cooldown(1, 60 * 5, commands.BucketType.guild)
     @commands.command(aliases=['echo'])
     async def say(self, ctx: Context, *, message: str):
         '''Brankobot will repeat your message input'''
@@ -407,7 +422,7 @@ class Fun(commands.Cog):
 
     @role_check()
     @commands.command(aliases=['chief', 'chieftain'], hidden=True)
-    @commands.cooldown(1, 300, commands.BucketType.guild)
+    @commands.cooldown(1, 60 * 5, commands.BucketType.guild)
     async def outside(self, ctx: Context):
         '''Chieftains, outside outside outˢᶦᵈᵉ'''
         await ctx.send(file=discord.File(str(Path('assets/audio/h7_outside.mp3'))))
@@ -425,7 +440,7 @@ class Fun(commands.Cog):
 
     @role_check()
     @commands.command(aliases=['createpoll'])
-    @commands.cooldown(1, 300, commands.BucketType.user)
+    @commands.cooldown(1, 60 * 5, commands.BucketType.user)
     async def poll(self, ctx: Context, title: str, *answers: str):
         '''Will create a strawpoll with possible [answers...] and [options...]'''
         payload = {
