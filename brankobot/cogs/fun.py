@@ -365,8 +365,16 @@ class Fun(commands.Cog):
         await ctx.send(answer["choices"][0]["text"].strip(" \n"))
 
 
+    @commands.is_owner()
+    @commands.command(aliases=['personalitychange'])
+    async def setpersonality(self, ctx: Context, *, personality: commands.clean_content):
+        '''Set the personality of the bot untill restarted'''
+        self.bot.PERSONALITY = personality
+        await ctx.send(f'Ofcourse, my liege {Emote.socialcredit.value}')
+
+
     @role_check(BigRLDRoleType.member, SmallRLDRoleType.member)
-    @commands.cooldown(2, 60 * 15, commands.BucketType.user)
+    @commands.cooldown(1, 60 * 1, commands.BucketType.member)
     @commands.command(aliases=['ai', 'askai'])
     async def ask(self, ctx: Context, *, prompt: commands.clean_content):
         '''Ask the bot a question using the OpenAI text-davinci 3 model. Note that the bot does not have or store any context.'''
