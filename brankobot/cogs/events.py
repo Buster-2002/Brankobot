@@ -531,7 +531,7 @@ class Events(commands.Cog):
           associated with this user in this guild.
         '''
         logger = logging.getLogger('brankobot')
-        logger.info(f'"{member}" left "{member.guild}"; removing reminders/birthday...')
+        logger.info(f'"{member}" left "{member.guild}"; removing reminders...')
         text_channels = {tc.id for tc in member.guild.text_channels}
 
         cursor = await self.bot.CONN.cursor()
@@ -596,9 +596,6 @@ class Events(commands.Cog):
         Actions
         -------
         * Handles error by sending message with information'''
-        if ctx.command:
-            ctx.command.reset_cooldown(ctx)
-
         if isinstance(error, commands.CommandNotFound):
             return
 
