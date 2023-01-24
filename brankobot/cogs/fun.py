@@ -374,7 +374,7 @@ class Fun(commands.Cog):
 
 
     @role_check(BigRLDRoleType.member, SmallRLDRoleType.member)
-    @commands.cooldown(1, 60 * 1, commands.BucketType.member)
+    @commands.cooldown(2, 60 * 5, commands.BucketType.user)
     @commands.command(aliases=['ai', 'askai'])
     async def ask(self, ctx: Context, *, prompt: commands.clean_content):
         '''Ask the bot a question using the OpenAI text-davinci 3 model. Note that the bot does not have or store any context.'''
