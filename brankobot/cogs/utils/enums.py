@@ -86,14 +86,15 @@ class BigRLDChannelType(_StrIsName, Enum):
 
 
 class BigRLDRoleType(_StrIsName, Enum):
-    xo       = 459433742088273920
-    po       = 600307495893729301
-    co       = 600306954803347486
-    ro       = 600306780832137248
-    private  = 459435327438716928
-    member   = 467814689699528709
-    onlyfans = 714512751946498070
-    friends  = 502955822247182337
+    xo        = 459433742088273920
+    po        = 600307495893729301
+    co        = 600306954803347486
+    ro        = 600306780832137248
+    private   = 459435327438716928
+    member    = 467814689699528709
+    onlyfans  = 714512751946498070
+    friends   = 502955822247182337
+    small_rld = 742098732597772349
 
 
 class SmallRLDChannelType(_StrIsName, Enum):
