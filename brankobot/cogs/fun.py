@@ -24,28 +24,29 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 '''
 import random
+import base64
 from functools import partial
 from io import BytesIO
 from pathlib import Path
 from textwrap import dedent, fill
-from typing import Union
+from typing import Optional, Union
 
 import discord
 import openai
 from discord.ext import commands
 from discord.utils import escape_markdown, remove_markdown
+from main import Bot, Context
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageSequence
 
-from main import Bot, Context
 from .utils.checks import channel_check, role_check
 from .utils.enums import (BigRLDChannelType, BigRLDRoleType, Emote, GuildType,
                           SmallRLDChannelType, SmallRLDRoleType)
-# from .utils.errors import (BirthdayAlreadyRegistered, BirthdayDoesntExist,
-#                            NoBirthdays, NotAModerator)
-from .utils.gif import save_transparent_gif
 # from .utils.helpers import average, get_next_birthday
 # from .utils.models import Birthday
 from .utils.flags import OpenAIFlags
+# from .utils.errors import (BirthdayAlreadyRegistered, BirthdayDoesntExist,
+#                            NoBirthdays, NotAModerator)
+from .utils.gif import save_transparent_gif
 
 
 class Fun(commands.Cog):
@@ -53,6 +54,7 @@ class Fun(commands.Cog):
 
     def __init__(self, bot):
         self.bot: Bot = bot
+        openai.api_key = self.bot.OPENAI_API_TOKEN
         self._8ball_responses = [
             'it is very certain',
             'it is decidedly so',
@@ -345,16 +347,43 @@ class Fun(commands.Cog):
         await ctx.send_response(msg, title='Urban Dictionary')
 
 
+    @commands.cooldown(1, 60 * 15, commands.BucketType.user)
+    @commands.command(aliases=['createimage', 'dall-e', 'dalle'])
+    async def generateimage(self, ctx: Context, size: Optional[int] = 2, *, prompt: str):
+        '''Generates an image from your text'''
+        sizes = {
+            1: '256x256',
+            2: '512x512',
+            3: '1024x1024'
+        }
+        size = sizes.get(size, sizes[2])
+        async with ctx.loading(initial_message='Generating') as loader:
+            response = openai.Image.create(
+                prompt=prompt,
+                n=1,
+                size=size,
+                response_format='b64_json'
+            )
+            data = response['data'][0]['b64_json']
+
+            await loader.update('Converting base64 to image')
+            fp = BytesIO()
+            image = Image.open(BytesIO(base64.b64decode(data)))
+            image.save(fp, format='png')
+            fp.seek(0)
+
+            await loader.update('Uploading')
+            await ctx.send(file=discord.File(fp, 'image.png'))
+
+
     @commands.is_owner()
     @commands.command(aliases=['adminai', 'adminaskai'])
     async def adminask(self, ctx: Context, prompt: commands.clean_content, *, flags: OpenAIFlags):
         '''Ask the bot a question using the OpenAI text-davinci 3 model'''
-        openai.api_key = self.bot.OPENAI_API_TOKEN
-
         if flags.personality is None:
             flags.personality = self.bot.PERSONALITY
 
-        answer = openai.Completion.create(
+        response = openai.Completion.create(
             prompt=flags.personality + ' ' + flags.context + ' ' + prompt,
             temperature=flags.temperature,
             max_tokens=flags.max_tokens,
@@ -362,31 +391,47 @@ class Fun(commands.Cog):
             presence_penalty=flags.presence_penalty,
             frequency_penalty=flags.frequency_penalty,
         )
-        await ctx.send(answer["choices"][0]["text"].strip(" \n"))
+        await ctx.send(response["choices"][0]["text"].strip(" \n"))
 
-
-    @commands.is_owner()
-    @commands.command(aliases=['personalitychange'])
-    async def setpersonality(self, ctx: Context, *, personality: commands.clean_content):
-        '''Set the personality of the bot untill restarted'''
-        self.bot.PERSONALITY = personality
-        await ctx.send(f'Ofcourse, my liege {Emote.socialcredit.value}')
-
-
-    @role_check(BigRLDRoleType.member, SmallRLDRoleType.member)
+    @role_check(BigRLDRoleType.member, SmallRLDRoleType.member, BigRLDRoleType.onlyfans, BigRLDRoleType.small_rld)
     @commands.cooldown(2, 60 * 5, commands.BucketType.user)
     @commands.command(aliases=['ai', 'askai'])
     async def ask(self, ctx: Context, *, prompt: commands.clean_content):
         '''Ask the bot a question using the OpenAI text-davinci 3 model. Note that the bot does not have or store any context.'''
-        openai.api_key = self.bot.OPENAI_API_TOKEN
+        try:
+            response = openai.Completion.create(
+                prompt=self.bot.PERSONALITY + prompt,
+                temperature=0.6,
+                max_tokens=400,
+                model='text-davinci-003'
+            )
+            await ctx.send(response["choices"][0]["text"].strip(" \n"))
+        except (openai.OpenAIError) as e:
+            await ctx.send(f'OpenAI error: {e}')
 
-        answer = openai.Completion.create(
-            prompt=self.bot.PERSONALITY + prompt,
-            temperature=0.6,
-            max_tokens=400,
-            model='text-davinci-003'
-        )
-        await ctx.send(answer["choices"][0]["text"].strip(" \n"))
+    @commands.is_owner()
+    @commands.group('personality', invoke_without_command=True)
+    async def personality(self, _: Context):
+        '''Commands for the bot personality'''
+
+    @commands.is_owner()
+    @personality.command('set', aliases=['change', 'update'])
+    async def personality_set(self, ctx: Context, *, personality: commands.clean_content):
+        '''Set the personality of the bot'''
+        self.bot.PERSONALITY = personality
+        await ctx.send(f'Ofcourse, my liege {Emote.socialcredit.value}')
+
+    @commands.is_owner()
+    @personality.command('reset', aliases=['default', 'clear'])
+    async def personality_reset(self, ctx: Context):
+        '''Reset the personality of the bot to the default'''
+        self.bot.PERSONALITY = self.bot.DEFAULT_PERSONALITY
+        await ctx.send(f'Ofcourse, my liege {Emote.socialcredit.value}')
+
+    @personality.command('current', aliases=['show', 'get'])
+    async def personality_current(self, ctx: Context):
+        '''Get the current personality of the bot'''
+        await ctx.send(f'Current personality: {self.bot.PERSONALITY}')
 
 
     @channel_check(BigRLDChannelType.memes, SmallRLDChannelType.memes)
