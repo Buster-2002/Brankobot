@@ -347,7 +347,7 @@ class Fun(commands.Cog):
         await ctx.send_response(msg, title='Urban Dictionary')
 
 
-    @commands.cooldown(1, 60 * 15, commands.BucketType.user)
+    @commands.cooldown(1, 60 * 60 * 24, commands.BucketType.user)
     @commands.command(aliases=['createimage', 'dall-e', 'dalle'])
     async def generateimage(self, ctx: Context, size: Optional[int] = 2, *, prompt: str):
         '''Generates an image from your text'''

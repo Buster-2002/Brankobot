@@ -39,7 +39,7 @@ import aiosqlite
 import discord
 from discord import MessageReference
 from discord import __version__ as dcversion
-from discord.ext import commands, tasks
+from discord.ext import commands
 from discord.utils import format_dt
 from humanize import naturaldelta
 from main import Bot, Context
@@ -738,7 +738,7 @@ class Events(commands.Cog):
             exc = f'you can\'t use this command {Emote.joy}'
 
         elif isinstance(error, commands.CommandOnCooldown):
-            exc = f'the command is on cooldown ({error.type.name} scope). try again in {error.retry_after:.0f}s {Emote.joy}'
+            exc = f'the command is on cooldown ({error.type.name} scope). try again in {naturaldelta(error.retry_after)} {Emote.joy}'
 
         elif isinstance(error, commands.MissingRequiredArgument):
             exc = f'you are missing a required argument: {error.param}'
