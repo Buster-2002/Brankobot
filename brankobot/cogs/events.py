@@ -581,12 +581,14 @@ class Events(commands.Cog):
 
     @commands.Cog.listener()
     async def on_command_completion(self, ctx: Context):
-        '''Called when a command successfully finished
+        '''Called when a command successfully finished execution
 
         Actions
         -------
         * Bot will log command usage to logging file
+        * Bot will reset cooldown if owner used command
         '''
+        # Log command usage
         logger = logging.getLogger('brankobot')
         logger.info(f'"{ctx.author}" used "{ctx.prefix}{ctx.command.qualified_name}" in #{ctx.channel}')
 
