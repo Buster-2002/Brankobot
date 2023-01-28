@@ -13,6 +13,7 @@ psutil
 youtube_dl
 async_timeout
 openai
+gTTS
 git+https://github.com/Rapptz/discord.py
 git+https://github.com/oliver-ni/discord-ext-menus-views
 git+https://github.com/Rapptz/discord-ext-menus
