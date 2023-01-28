@@ -248,6 +248,7 @@ class Music(commands.Cog):
     async def connect_(self, ctx: Context):
         '''Connects to your voice channel'''
         destination = ctx.author.voice.channel
+
         try:
             # Check to see if there's already an active voice session
             if ctx.voice_client is not None:
