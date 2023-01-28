@@ -590,6 +590,10 @@ class Events(commands.Cog):
         logger = logging.getLogger('brankobot')
         logger.info(f'"{ctx.author}" used "{ctx.prefix}{ctx.command.qualified_name}" in #{ctx.channel}')
 
+        # Reset cooldown if owner used command
+        if ctx.author.id in ctx.bot.owner_ids:
+            ctx.command.reset_cooldown(ctx)
+
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx: Context, error: Exception):
