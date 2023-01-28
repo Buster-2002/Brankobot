@@ -29,7 +29,7 @@ __title__ = 'Brankobot'
 __author__ = 'Buster#5741'
 __license__ = 'MIT'
 __copyright__ = 'Copyright 2021-present Buster'
-__version__ = '6.3.0'
+__version__ = '6.5.0'
 
 import asyncio
 import logging
@@ -306,6 +306,12 @@ class Bot(commands.Bot):
         }
         self.DEFAULT_PERSONALITY = 'Your name is brankobot. Answer the following question in a nonchalant, impolite and politically incorrect manner without punctuation: '
         self.PERSONALITY = self.DEFAULT_PERSONALITY
+
+        self.SPEECH_LANGUAGE = 'en'
+        self.SPEECH_ACCENT = 'en-US'
+
+        self.DEFAULT_TIKTOK_VOICE = 'en_uk_001'
+        self.TIKTOK_VOICE = self.DEFAULT_TIKTOK_VOICE
 
 
     async def is_blacklisted(self, user) -> bool:
