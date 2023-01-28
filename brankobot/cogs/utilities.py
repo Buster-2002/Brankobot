@@ -721,5 +721,6 @@ class Utilities(commands.Cog):
         finally:
             await cursor.close()
 
+
 async def setup(bot):
     await bot.add_cog(Utilities(bot))
