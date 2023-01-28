@@ -459,18 +459,19 @@ class Fun(commands.Cog):
             # Turn AI text into audio using tiktok tts API
             sound = tTTS(text, self.bot.AIOHTTP_SESSION, '73dbc3b8c6d94ee533c71c6570538fa0', self.bot.TIKTOK_VOICE)
             data = await sound.save('sound.mp3')
+            status = data['status']
 
-            if data['status'] == 'This voice is unavailable now':
+            if status == 'This voice is unavailable now':
                 await ctx.send('voice unavailable in tiktok tts, using google tts instead...')
                 raise
-            elif data['status'] == 'Text too long to create speech audio':
+            elif status == 'Text too long to create speech audio':
                 await ctx.send('text too long for tiktok tts, using google tts instead...')
                 raise
-            elif data['status'] == 'Couldn\'t load speech. Try again.':
+            elif status == 'Couldn\'t load speech. Try again.':
                 await ctx.send('new session id required for tiktok tts, using google tts instead...')
                 raise
-            elif data['status'] != 'success':
-                await ctx.send(f'unknown error for tiktok tts: {data["status"]}, using google tts instead...')
+            elif status != 'success':
+                await ctx.send(f'unknown error for tiktok tts: {status}, using google tts instead...')
                 raise
 
         except:
