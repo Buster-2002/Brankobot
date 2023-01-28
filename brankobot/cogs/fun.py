@@ -37,7 +37,6 @@ import openai
 from discord.ext import commands
 from discord.utils import escape_markdown, remove_markdown
 from gtts import gTTS
-import pyttsx3
 from main import Bot, Context
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageSequence
 
@@ -419,6 +418,7 @@ class Fun(commands.Cog):
                     model='text-davinci-003'
                 )
                 await ctx.send(response["choices"][0]["text"].strip(" \n"))
+
         except openai.OpenAIError:
             await ctx.send(f'OpenAI error try again lata')
 
