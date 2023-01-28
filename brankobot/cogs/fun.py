@@ -327,9 +327,9 @@ class Fun(commands.Cog):
                 )
                 data = response['data'][0]['b64_json']
             except openai.InvalidRequestError:
-                await loader.update('Invalid request (filtered response), try again')
-                await loader.__aexit__(None, None, None)
+                await ctx.send('Invalid request (filtered response), try again')
                 self.generateimage.reset_cooldown(ctx)
+                return
 
             await loader.update('Converting base64 to image')
             fp = BytesIO()
