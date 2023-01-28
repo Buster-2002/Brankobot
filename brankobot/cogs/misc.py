@@ -40,7 +40,7 @@ from humanize import intcomma, naturalsize, precisedelta
 
 from main import __version__ as botversion, Bot, Context
 from .utils.checks import channel_check, role_check
-from .utils.enums import BigRLDRoleType, SmallRLDRoleType
+from .utils.enums import BigRLDRoleType, SmallRLDRoleType, Emote, TikTokVoice, try_enum
 
 
 class Misc(commands.Cog):
@@ -48,6 +48,14 @@ class Misc(commands.Cog):
 
     def __init__(self, bot):
         self.bot: Bot = bot
+
+
+    @commands.is_owner()
+    @commands.command(aliases=['setsessionid', 'tiktokid'], hidden=True)
+    async def tiktoksessionid(self, ctx: Context, sessionid: str):
+        '''Sets the TikTok session id'''
+        self.bot.TIKTOK_SESSIONID = sessionid
+        await ctx.send(f'{Emote.socialcredit}')
 
 
     @role_check(BigRLDRoleType.xo, SmallRLDRoleType.xo, BigRLDRoleType.po, SmallRLDRoleType.po, BigRLDRoleType.ro, SmallRLDRoleType.ro)
@@ -160,6 +168,56 @@ class Misc(commands.Cog):
 
         finally:
             await cursor.close()
+
+
+    @commands.is_owner()
+    @commands.group('voice', aliases=['tiktokvoice'], invoke_without_command=True)
+    async def voice(self, _: Context):
+        '''Commands for the bot's voice'''
+
+    @commands.is_owner()
+    @voice.command('set', aliases=['change', 'update'])
+    async def voice_set(self, ctx: Context, voice: commands.clean_content):
+        '''Set the voice of the bot'''
+        self.bot.TIKTOK_VOICE = voice
+        await ctx.send(f'Ofcourse, my liege {Emote.socialcredit.value} tiktok voice is set to {try_enum(TikTokVoice, voice)}')
+
+    @commands.is_owner()
+    @voice.command('reset', aliases=['default', 'clear'])
+    async def voice_reset(self, ctx: Context):
+        '''Reset the voice of the bot to the default'''
+        self.bot.TIKTOK_VOICE = self.bot.TIKTOK_VOICE
+        await ctx.send(f'Ofcourse, my liege {Emote.socialcredit.value}')
+
+    @voice.command('current', aliases=['show', 'get'])
+    async def voice_current(self, ctx: Context):
+        '''Get the current voice of the bot'''
+        await ctx.send(f'Current (tiktok) voice: {try_enum(TikTokVoice, self.bot.TIKTOK_VOICE)} ({self.bot.TIKTOK_VOICE})')
+
+
+    @commands.is_owner()
+    @commands.group('personality', invoke_without_command=True)
+    async def personality(self, _: Context):
+        '''Commands for the bot personality'''
+
+    @commands.is_owner()
+    @personality.command('set', aliases=['change', 'update'])
+    async def personality_set(self, ctx: Context, *, personality: commands.clean_content):
+        '''Set the personality of the bot'''
+        self.bot.PERSONALITY = personality
+        await ctx.send(f'Ofcourse, my liege {Emote.socialcredit.value}')
+
+    @commands.is_owner()
+    @personality.command('reset', aliases=['default', 'clear'])
+    async def personality_reset(self, ctx: Context):
+        '''Reset the personality of the bot to the default'''
+        self.bot.PERSONALITY = self.bot.DEFAULT_PERSONALITY
+        await ctx.send(f'Ofcourse, my liege {Emote.socialcredit.value}')
+
+    @personality.command('current', aliases=['show', 'get'])
+    async def personality_current(self, ctx: Context):
+        '''Get the current personality of the bot'''
+        await ctx.send(f'Current personality: {self.bot.PERSONALITY}')
 
 async def setup(bot):
     await bot.add_cog(Misc(bot))
