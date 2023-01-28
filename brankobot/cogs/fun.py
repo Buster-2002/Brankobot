@@ -479,9 +479,9 @@ class Fun(commands.Cog):
             sound.save('sound.mp3')
 
         # Join the voice channel
-        destination = ctx.author.voice
+        destination = ctx.author.voice.channel
         try:
-            destination.connect()
+            await destination.connect()
 
         except asyncio.TimeoutError:
             raise VoiceChannelError('Timed out', destination)
