@@ -505,7 +505,7 @@ class Utilities(commands.Cog):
     @cc.command('add', aliases=['make', 'create'])
     async def cc_add(self, ctx: Context, command_name: CommandNameCheck, *, content: str):
         '''Creates a custom command'''
-        if len(content) > 500:
+        if len(content) > 1000:
             raise InvalidCommandContent()
 
         cursor = await self.bot.CONN.cursor()
