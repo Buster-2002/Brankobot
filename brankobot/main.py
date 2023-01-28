@@ -312,6 +312,7 @@ class Bot(commands.Bot):
 
         self.DEFAULT_TIKTOK_VOICE = 'en_uk_001'
         self.TIKTOK_VOICE = self.DEFAULT_TIKTOK_VOICE
+        self.TIKTOK_SESSIONID = '73dbc3b8c6d94ee533c71c6570538fa0'
 
 
     async def is_blacklisted(self, user) -> bool:
