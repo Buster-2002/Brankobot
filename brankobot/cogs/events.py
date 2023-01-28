@@ -423,8 +423,10 @@ class Events(commands.Cog):
 
         # React to being mentioned
         elif self.bot.user in message.mentions:
-            response = (random.choices(*zip(*self._mention_responses.items()))[0]).format(author.mention)
-            await channel.send(response)
+            # See if it's a reply to a message
+            if message.reference is None:
+                response = (random.choices(*zip(*self._mention_responses.items()))[0]).format(author.mention)
+                await channel.send(response)
 
         # See if it's a custom command by checking the database
         elif content.startswith('>'):
@@ -738,6 +740,9 @@ class Events(commands.Cog):
             exc = f'you can\'t use this command {Emote.joy}'
 
         elif isinstance(error, commands.CommandOnCooldown):
+            # if ctx.author.id in self.bot.owner_ids:
+            #     ctx.command.reset_cooldown(ctx)
+            #     return
             exc = f'the command is on cooldown ({error.type.name} scope). try again in {naturaldelta(error.retry_after)} {Emote.joy}'
 
         elif isinstance(error, commands.MissingRequiredArgument):
