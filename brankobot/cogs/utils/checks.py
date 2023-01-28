@@ -68,11 +68,10 @@ def is_connected():
     '''Returns whether the invoker is connected to a voice channel
     '''
     async def predicate(ctx: Context) -> bool:
-        if (await ctx.bot.is_owner(ctx.author)) is False:
-            destination = getattr(ctx.author.voice, 'channel', None)
+        destination = getattr(ctx.author.voice, 'channel', None)
 
-            if destination is None:
-                raise VoiceChannelError(f'You aren\'t connected to a voice channel')
+        if destination is None:
+            raise VoiceChannelError(f'You aren\'t connected to a voice channel')
 
         return True
 
