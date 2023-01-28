@@ -29,13 +29,13 @@ import random
 from functools import partial
 from io import BytesIO
 from pathlib import Path
-from textwrap import dedent, fill
+from textwrap import fill
 from typing import Optional, Union
 
 import discord
 import openai
 from discord.ext import commands
-from discord.utils import escape_markdown, remove_markdown
+from discord.utils import remove_markdown
 from gtts import gTTS
 from main import Bot, Context
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageSequence
@@ -97,14 +97,6 @@ class Fun(commands.Cog):
             'maybe {num}?',
             'uhhh.. {num}?',
             'possibly {num}'
-        ]
-        self._echo_responses = [
-            'nah',
-            'nope',
-            'no',
-            'and if i dont?',
-            'lol yeah, no',
-            'shut up please'
         ]
 
 
@@ -293,20 +285,6 @@ class Fun(commands.Cog):
             await ctx.send(file=discord.File(str(Path('assets/audio/joc666_offline.mp3'))))
 
 
-    @commands.cooldown(5, 60, commands.BucketType.guild)
-    @commands.command()
-    async def rand(self, ctx: Context, num1: int, num2: int, type: str = None):
-        '''Chooses random number'''
-        r_int = random.randrange(num1, (num2 + 1))
-        if type == 'scale':
-            rep = self._rand_responses_1
-        elif type == 'percentage':
-            rep = self._rand_responses_2
-        else:
-            rep = self._rand_responses_3
-        await ctx.send(random.choice(rep).format(n1=num1, n2=num2, num=r_int))
-
-
     @commands.command()
     @commands.cooldown(5, 60, commands.BucketType.guild)
     async def love(self, ctx: Context, *, thing: str):
@@ -326,29 +304,6 @@ class Fun(commands.Cog):
     async def _8ball(self, ctx: Context):
         '''Ask magic 8ball a question'''
         await ctx.send(f'{ctx.author.mention}, {random.choice(self._8ball_responses)}')
-
-
-    @channel_check(BigRLDChannelType.general)
-    @commands.cooldown(1, 3, commands.BucketType.user)
-    @commands.command(aliases=['urbandict', 'define'])
-    async def urban(self, ctx: Context, *, query: commands.clean_content):
-        '''Defines a word using the urban dictionary'''
-        r = await self.bot.AIOHTTP_SESSION.get(f'http://api.urbandictionary.com/v0/define?term={query}')
-        data = await r.json()
-        nl = '\n'
-        try:
-            msg = dedent(f'''
-                **Word:** [{data['word']}]({data.get('permalink')})
-                **Date:** {data.get('written_on', '1900-01-01')[0:10]}
-                **Upvotes:** {data.get('thumbs_up', 'No Upvotes')}
-                **Downvotes:** {data.get('thumbs_down', 'No Downvotes')}
-                **Definition:** {escape_markdown(data.get('definition').replace(nl, ''))}
-
-                *{escape_markdown(data.get('example').replace(nl, ''))}*
-            '''.strip())
-        except KeyError:
-            msg = f'Word {query} not found'
-        await ctx.send_response(msg, title='Urban Dictionary')
 
 
     @role_check(BigRLDRoleType.member, SmallRLDRoleType.member, BigRLDRoleType.onlyfans, BigRLDRoleType.small_rld)
@@ -428,7 +383,7 @@ class Fun(commands.Cog):
     @commands.cooldown(1, 60 * 15, commands.BucketType.guild)
     @commands.command(aliases=['voiceai', 'voiceaskai', 'tts'])
     async def voiceask(self, ctx: Context, *, prompt: str):
-        '''Ask the bot a question using and he will say it in voice'''
+        '''Ask the bot a question using and he will answer it in voicechat'''
 
         # Check if the bot is currently in a voice channel
         # If he's playing music, that music will need to be stopped and command tried again
@@ -457,7 +412,7 @@ class Fun(commands.Cog):
         # Try to use the tiktok tts API, else use google tts api
         try:
             # Turn AI text into audio using tiktok tts API
-            sound = tTTS(text, self.bot.AIOHTTP_SESSION, '73dbc3b8c6d94ee533c71c6570538fa0', self.bot.TIKTOK_VOICE)
+            sound = tTTS(text, self.bot.AIOHTTP_SESSION, self.bot.TIKTOK_SESSIONID, self.bot.TIKTOK_VOICE)
             data = await sound.save('sound.mp3')
             status = data['status']
 
@@ -501,56 +456,6 @@ class Fun(commands.Cog):
                 break
 
 
-    @commands.is_owner()
-    @commands.group('voice', aliases=['tiktokvoice'], invoke_without_command=True)
-    async def voice(self, _: Context):
-        '''Commands for the bot's voice'''
-
-    @commands.is_owner()
-    @voice.command('set', aliases=['change', 'update'])
-    async def voice_set(self, ctx: Context, voice: commands.clean_content):
-        '''Set the voice of the bot'''
-        self.bot.TIKTOK_VOICE = voice
-        await ctx.send(f'Ofcourse, my liege {Emote.socialcredit.value} tiktok voice is set to {TikTokVoice[voice]}')
-
-    @commands.is_owner()
-    @voice.command('reset', aliases=['default', 'clear'])
-    async def voice_reset(self, ctx: Context):
-        '''Reset the voice of the bot to the default'''
-        self.bot.TIKTOK_VOICE = self.bot.TIKTOK_VOICE
-        await ctx.send(f'Ofcourse, my liege {Emote.socialcredit.value}')
-
-    @voice.command('current', aliases=['show', 'get'])
-    async def voice_current(self, ctx: Context):
-        '''Get the current voice of the bot'''
-        await ctx.send(f'Current (tiktok) voice: {TikTokVoice[self.bot.TIKTOK_VOICE]} ({self.bot.TIKTOK_VOICE})')
-
-
-    @commands.is_owner()
-    @commands.group('personality', invoke_without_command=True)
-    async def personality(self, _: Context):
-        '''Commands for the bot personality'''
-
-    @commands.is_owner()
-    @personality.command('set', aliases=['change', 'update'])
-    async def personality_set(self, ctx: Context, *, personality: commands.clean_content):
-        '''Set the personality of the bot'''
-        self.bot.PERSONALITY = personality
-        await ctx.send(f'Ofcourse, my liege {Emote.socialcredit.value}')
-
-    @commands.is_owner()
-    @personality.command('reset', aliases=['default', 'clear'])
-    async def personality_reset(self, ctx: Context):
-        '''Reset the personality of the bot to the default'''
-        self.bot.PERSONALITY = self.bot.DEFAULT_PERSONALITY
-        await ctx.send(f'Ofcourse, my liege {Emote.socialcredit.value}')
-
-    @personality.command('current', aliases=['show', 'get'])
-    async def personality_current(self, ctx: Context):
-        '''Get the current personality of the bot'''
-        await ctx.send(f'Current personality: {self.bot.PERSONALITY}')
-
-
     @channel_check(BigRLDChannelType.memes, SmallRLDChannelType.memes)
     @commands.cooldown(1, 3, commands.BucketType.user)
     @commands.command(aliases=['randommeme', 'meme'])
@@ -578,17 +483,11 @@ class Fun(commands.Cog):
             await ctx.reply(f'Couldn\'t find subreddit {subreddit}', delete_after=60, mention_author=False)
 
 
-    @role_check(BigRLDRoleType.member, BigRLDRoleType.onlyfans, SmallRLDRoleType.member)
-    @commands.cooldown(1, 60 * 5, commands.BucketType.guild)
-    @commands.command(aliases=['echo'])
+    @commands.is_owner()
+    @commands.command(aliases=['echo'], hidden=True)
     async def say(self, ctx: Context, *, message: str):
         '''Brankobot will repeat your message input'''
-        if not self._check_input(message):
-            await ctx.send(random.choice(self._echo_responses))
-        else:
-            await ctx.message.delete()
-            msg = await ctx.send(message)
-            await msg.add_reaction('🤡')
+        await ctx.send(message)
 
 
     @role_check()
@@ -597,16 +496,6 @@ class Fun(commands.Cog):
     async def outside(self, ctx: Context):
         '''Chieftains, outside outside outˢᶦᵈᵉ'''
         await ctx.send(file=discord.File(str(Path('assets/audio/h7_outside.mp3'))))
-
-
-    @role_check()
-    @commands.command(aliases=['uselessfact'])
-    @commands.cooldown(1, 60, commands.BucketType.user)
-    async def fact(self, ctx: Context):
-        '''Will send a random useless fact'''
-        r = await (await self.bot.AIOHTTP_SESSION.get('https://uselessfacts.jsph.pl/random.json?language=en')).json()
-        msg = r['text'].replace('`', '\'')
-        await ctx.send_response(msg, title='Useless Fact')
 
 
     @role_check()
@@ -770,37 +659,6 @@ class Fun(commands.Cog):
 
     #     finally:
     #         await cursor.close()
-
-
-    @commands.group(invoke_without_command=True)
-    @commands.cooldown(1, 30, commands.BucketType.user)
-    async def joke(self, _):
-        '''Base command for sending jokes'''
-
-    @joke.command('dad')
-    async def joke_dad(self, ctx: Context):
-        '''Will send a random dad joke from [this website](https://icanhazdadjoke.com)'''
-        r = await (await self.bot.AIOHTTP_SESSION.get('https://icanhazdadjoke.com', headers={'Accept': 'application/json'})).json()
-        msg = r['joke']
-        await ctx.send_response(msg)
-
-    @joke.command('dark')
-    async def joke_dark(self, ctx: Context):
-        '''Will send a random dark joke from [this website](https://sv443.net/jokeapi)'''
-        r = await (await self.bot.AIOHTTP_SESSION.get('https://sv443.net/jokeapi/v2/joke/Dark')).json()
-        await ctx.send_response(self._format_joke(r))
-
-    @joke.command('pun')
-    async def joke_pun(self, ctx: Context):
-        '''Will send a random pun joke from [this website](https://sv443.net/jokeapi)'''
-        r = await (await self.bot.AIOHTTP_SESSION.get('https://sv443.net/jokeapi/v2/joke/Pun')).json()
-        await ctx.send_response(self._format_joke(r))
-
-    @joke.command('misc')
-    async def joke_misc(self, ctx: Context):
-        '''Will send a random miscellaneous joke from [this website](https://sv443.net/jokeapi)'''
-        r = await (await self.bot.AIOHTTP_SESSION.get('https://sv443.net/jokeapi/v2/joke/Miscellaneous')).json()
-        await ctx.send_response(self._format_joke(r))
 
 
 async def setup(bot):
