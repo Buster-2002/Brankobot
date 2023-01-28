@@ -23,8 +23,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 '''
-import random
+import asyncio
 import base64
+import random
 from functools import partial
 from io import BytesIO
 from pathlib import Path
@@ -35,18 +36,22 @@ import discord
 import openai
 from discord.ext import commands
 from discord.utils import escape_markdown, remove_markdown
+from gtts import gTTS
+import pyttsx3
 from main import Bot, Context
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageSequence
 
-from .utils.checks import channel_check, role_check
+from .utils.checks import channel_check, role_check, is_connected
 from .utils.enums import (BigRLDChannelType, BigRLDRoleType, Emote, GuildType,
-                          SmallRLDChannelType, SmallRLDRoleType)
+                          SmallRLDChannelType, SmallRLDRoleType, TikTokVoice)
 # from .utils.helpers import average, get_next_birthday
 # from .utils.models import Birthday
 from .utils.flags import OpenAIFlags
 # from .utils.errors import (BirthdayAlreadyRegistered, BirthdayDoesntExist,
 #                            NoBirthdays, NotAModerator)
 from .utils.gif import save_transparent_gif
+from .utils.errors import VoiceChannelError
+from .utils.ttts import tTTS
 
 
 class Fun(commands.Cog):
@@ -150,7 +155,7 @@ class Fun(commands.Cog):
                 break
 
         # Calculate bar height to fit the text on by getting the
-        # total height of the text 
+        # total height of the text
         bar_height = font.getsize_multiline(lines)[1] + 8
 
         # Add text to each frame in the gif
@@ -347,6 +352,7 @@ class Fun(commands.Cog):
         await ctx.send_response(msg, title='Urban Dictionary')
 
 
+    @role_check(BigRLDRoleType.member, SmallRLDRoleType.member, BigRLDRoleType.onlyfans, BigRLDRoleType.small_rld)
     @commands.cooldown(1, 60 * 60 * 24, commands.BucketType.user)
     @commands.command(aliases=['createimage', 'dall-e', 'dalle'])
     async def generateimage(self, ctx: Context, size: Optional[int] = 2, *, prompt: str):
@@ -358,13 +364,18 @@ class Fun(commands.Cog):
         }
         size = sizes.get(size, sizes[2])
         async with ctx.loading(initial_message='Generating') as loader:
-            response = openai.Image.create(
-                prompt=prompt,
-                n=1,
-                size=size,
-                response_format='b64_json'
-            )
-            data = response['data'][0]['b64_json']
+            try:
+                response = openai.Image.create(
+                    prompt=prompt,
+                    n=1,
+                    size=size,
+                    response_format='b64_json'
+                )
+                data = response['data'][0]['b64_json']
+            except openai.InvalidRequestError:
+                await loader.update('Invalid request (filtered response), try again')
+                await loader.__aexit__(None, None, None)
+                self.generateimage.reset_cooldown(ctx)
 
             await loader.update('Converting base64 to image')
             fp = BytesIO()
@@ -393,21 +404,126 @@ class Fun(commands.Cog):
         )
         await ctx.send(response["choices"][0]["text"].strip(" \n"))
 
+
     @role_check(BigRLDRoleType.member, SmallRLDRoleType.member, BigRLDRoleType.onlyfans, BigRLDRoleType.small_rld)
-    @commands.cooldown(2, 60 * 5, commands.BucketType.user)
+    @commands.cooldown(5, 60 * 5, commands.BucketType.guild)
     @commands.command(aliases=['ai', 'askai'])
     async def ask(self, ctx: Context, *, prompt: commands.clean_content):
         '''Ask the bot a question using the OpenAI text-davinci 3 model. Note that the bot does not have or store any context.'''
         try:
+            async with ctx.typing():
+                response = openai.Completion.create(
+                    prompt=self.bot.PERSONALITY + prompt,
+                    temperature=0.6,
+                    max_tokens=200,
+                    model='text-davinci-003'
+                )
+                await ctx.send(response["choices"][0]["text"].strip(" \n"))
+        except openai.OpenAIError:
+            await ctx.send(f'OpenAI error try again lata')
+
+
+    @is_connected()
+    @commands.is_owner()
+    @commands.cooldown(1, 60 * 15, commands.BucketType.guild)
+    @commands.command(aliases=['voiceai', 'voiceaskai', 'tts'])
+    async def voiceask(self, ctx: Context, *, prompt: str):
+        '''Ask the bot a question using and he will say it in voice'''
+
+        # Check if the bot is currently in a voice channel
+        # If he's playing music, that music will need to be stopped and command tried again
+        if ctx.voice_client is not None:
+            await ctx.send(f'I am already in a voice channel {Emote.rolling_eyes}')
+            self.voiceask.reset_cooldown(ctx)
+            return
+
+        # Generate AI response
+        try:
             response = openai.Completion.create(
                 prompt=self.bot.PERSONALITY + prompt,
-                temperature=0.6,
-                max_tokens=400,
+                temperature=0.8,
+                max_tokens=70,
                 model='text-davinci-003'
             )
-            await ctx.send(response["choices"][0]["text"].strip(" \n"))
-        except (openai.OpenAIError) as e:
-            await ctx.send(f'OpenAI error: {e}')
+            response = response["choices"][0]["text"].strip(" \n")
+
+        except openai.OpenAIError:
+            await ctx.send('OpenAI error try again lata')
+
+        # The speech will be a combination of the invokers name, the prompt, the AI response and what is in between the last two
+        random_interlude = random.choice([', well, ', ', ', ', I guess, '])
+        text = f'{ctx.author.name} asked: {prompt}{random_interlude}{response}'
+
+        # Try to use the tiktok tts API, else use google tts api
+        try:
+            # Turn AI text into audio using tiktok tts API
+            sound = tTTS(text, self.bot.AIOHTTP_SESSION, '73dbc3b8c6d94ee533c71c6570538fa0', self.bot.TIKTOK_VOICE)
+            data = await sound.save('sound.mp3')
+
+            if data['status'] == 'This voice is unavailable now':
+                await ctx.send('voice unavailable in tiktok tts, using google tts instead...')
+                raise
+            elif data['status'] == 'Text too long to create speech audio':
+                await ctx.send('text too long for tiktok tts, using google tts instead...')
+                raise
+            elif data['status'] == 'Couldn\'t load speech. Try again.':
+                await ctx.send('new session id required for tiktok tts, using google tts instead...')
+                raise
+            elif data['status'] != 'success':
+                await ctx.send(f'unknown error for tiktok tts: {data["status"]}, using google tts instead...')
+                raise
+
+        except:
+            # Turn AI text into audio using google tts API
+            sound = gTTS(text, lang=self.bot.SPEECH_LANGUAGE, tld=self.bot.SPEECH_ACCENT)
+            sound.save('sound.mp3')
+
+        # Join the voice channel
+        destination = ctx.author.voice
+        try:
+            destination.connect()
+
+        except asyncio.TimeoutError:
+            raise VoiceChannelError('Timed out', destination)
+
+        # Play the sound file
+        vc = ctx.voice_client
+        source = discord.FFmpegPCMAudio('sound.mp3')
+        vc.play(source, after=None)
+
+        # Sleep until the sound file is done playing, then disconnect
+        while True:
+            await asyncio.sleep(30)
+
+            if vc.is_playing() is False:
+                await vc.disconnect()
+                break
+
+
+    @commands.is_owner()
+    @commands.group('voice', aliases=['tiktokvoice'], invoke_without_command=True)
+    async def voice(self, _: Context):
+        '''Commands for the bot's voice'''
+
+    @commands.is_owner()
+    @voice.command('set', aliases=['change', 'update'])
+    async def voice_set(self, ctx: Context, voice: commands.clean_content):
+        '''Set the voice of the bot'''
+        self.bot.TIKTOK_VOICE = voice
+        await ctx.send(f'Ofcourse, my liege {Emote.socialcredit.value} tiktok voice is set to {TikTokVoice[voice]}')
+
+    @commands.is_owner()
+    @voice.command('reset', aliases=['default', 'clear'])
+    async def voice_reset(self, ctx: Context):
+        '''Reset the voice of the bot to the default'''
+        self.bot.TIKTOK_VOICE = self.bot.TIKTOK_VOICE
+        await ctx.send(f'Ofcourse, my liege {Emote.socialcredit.value}')
+
+    @voice.command('current', aliases=['show', 'get'])
+    async def voice_current(self, ctx: Context):
+        '''Get the current voice of the bot'''
+        await ctx.send(f'Current (tiktok) voice: {TikTokVoice[self.bot.TIKTOK_VOICE]} ({self.bot.TIKTOK_VOICE})')
+
 
     @commands.is_owner()
     @commands.group('personality', invoke_without_command=True)
