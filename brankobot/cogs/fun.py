@@ -38,7 +38,7 @@ from discord.ext import commands
 from discord.utils import remove_markdown
 from gtts import gTTS
 from main import Bot, Context
-from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageSequence
+from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageSequence, UnidentifiedImageError
 
 from .utils.checks import channel_check, role_check, is_connected
 from .utils.enums import (BigRLDChannelType, BigRLDRoleType, Emote, GuildType,
@@ -99,65 +99,69 @@ class Fun(commands.Cog):
         discord.File
             The captioned image
         '''
-        im = Image.open(BytesIO(im_bytes))
-        frames = []
-        BEBASNEUE = str(Path('assets/fonts/BebasNeue.ttf'))
-        font = ImageFont.truetype(BEBASNEUE, 1)
-        ft = im.format.lower()
-        W = im.size[0]
-
-        # Calculate the size of the font by taking the length
-        # of the text and increasing it depending on the amount
-        # of text
-        fontsize = 1
-        if len(text) < 23:
-            while font.getsize(text)[0] < (0.9 * W):
-                fontsize += 1
-                font = ImageFont.truetype(BEBASNEUE, fontsize)
-
+        try:
+            im = Image.open(BytesIO(im_bytes))
+        except UnidentifiedImageError:
+            raise commands.BadArgument('Invalid image URL (only use discord CDN links)')
         else:
-            font = ImageFont.truetype(BEBASNEUE, 50)
+            frames = []
+            BEBASNEUE = str(Path('assets/fonts/BebasNeue.ttf'))
+            font = ImageFont.truetype(BEBASNEUE, 1)
+            ft = im.format.lower()
+            W = im.size[0]
 
-        # Calculate width of text by taking the width of the image
-        # and slowly increasing it untill it fits 90%
-        width = 1
-        lines = fill(text, width)
-        while font.getsize_multiline(lines)[0] < (0.9 * W):
-            width += 1
+            # Calculate the size of the font by taking the length
+            # of the text and increasing it depending on the amount
+            # of text
+            fontsize = 1
+            if len(text) < 23:
+                while font.getsize(text)[0] < (0.9 * W):
+                    fontsize += 1
+                    font = ImageFont.truetype(BEBASNEUE, fontsize)
+
+            else:
+                font = ImageFont.truetype(BEBASNEUE, 50)
+
+            # Calculate width of text by taking the width of the image
+            # and slowly increasing it untill it fits 90%
+            width = 1
             lines = fill(text, width)
-            if width > 50:
-                break
+            while font.getsize_multiline(lines)[0] < (0.9 * W):
+                width += 1
+                lines = fill(text, width)
+                if width > 50:
+                    break
 
-        # Calculate bar height to fit the text on by getting the
-        # total height of the text
-        bar_height = font.getsize_multiline(lines)[1] + 8
+            # Calculate bar height to fit the text on by getting the
+            # total height of the text
+            bar_height = font.getsize_multiline(lines)[1] + 8
 
-        # Add text to each frame in the gif
-        for frame in ImageSequence.Iterator(im):
-            frame = frame.convert('RGBA')
-            frame = ImageOps.expand(
-                image=frame,
-                border=(0, bar_height, 0, 0),
-                fill='white'
-            ).convert('RGBA')
+            # Add text to each frame in the gif
+            for frame in ImageSequence.Iterator(im):
+                frame = frame.convert('RGBA')
+                frame = ImageOps.expand(
+                    image=frame,
+                    border=(0, bar_height, 0, 0),
+                    fill='white'
+                ).convert('RGBA')
 
-            draw = ImageDraw.Draw(frame)
-            draw.multiline_text(
-                xy=(W / 2, 0),
-                text=lines,
-                fill='black',
-                font=font,
-                align='center', # Aligment for individual lines
-                anchor='ma'     # Total text alignment relative to xy being middle top
-            )
+                draw = ImageDraw.Draw(frame)
+                draw.multiline_text(
+                    xy=(W / 2, 0),
+                    text=lines,
+                    fill='black',
+                    font=font,
+                    align='center', # Aligment for individual lines
+                    anchor='ma'     # Total text alignment relative to xy being middle top
+                )
 
-            frames.append(frame.convert('RGBA'))
+                frames.append(frame.convert('RGBA'))
 
-        # Save Image as discord File ready to send
-        fp = BytesIO()
-        save_transparent_gif(frames, im.info.get('duration', 64), fp)
-        fp.seek(0)
-        return discord.File(fp, f'caption.{ft}'), ft
+            # Save Image as discord File ready to send
+            fp = BytesIO()
+            save_transparent_gif(frames, im.info.get('duration', 64), fp)
+            fp.seek(0)
+            return discord.File(fp, f'caption.{ft}'), ft
 
 
     @staticmethod
@@ -372,7 +376,7 @@ class Fun(commands.Cog):
         # Check if the bot is currently in a voice channel
         # If he's playing music, that music will need to be stopped and command tried again
         if ctx.voice_client is not None:
-            await ctx.send(f'I am already in a voice channel {Emote.rolling_eyes}')
+            await ctx.send(f'I am already in a voice channel {Emote.rolling_eyes} (cancel music and try again?)')
             self.voiceask.reset_cooldown(ctx)
             return
 
