@@ -32,7 +32,7 @@ from discord.ext.commands import flags
 
 
 def try_enum(cls: Any, value: Any, *, reverse_lookup: bool = False) -> Any:
-    '''Tries to return cls Enum by value or key
+    '''Tries to return cls Enum by value or key, else return input value
 
     Parameters
     ----------
