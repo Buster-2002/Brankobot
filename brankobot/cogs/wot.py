@@ -89,7 +89,7 @@ class WoT(commands.Cog):
 
     @staticmethod
     def _combine_images(images: List[Image.Image], columns: int, image_size: Tuple[int]) -> Image.Image:
-        '''Combines a list of equal sized Image into one image mosaic
+        '''Combines a list of equal sized Image into one image
 
         Parameters
         ----------
@@ -367,7 +367,7 @@ class WoT(commands.Cog):
         Returns
         -------
         discord.File
-            The image mosaic of all marks
+            The combined image of all marks
         '''
         total_3_marks: int = sum([item.mark is MarkType.third_mark for item in data])
         total_2_marks: int = sum([item.mark is MarkType.second_mark for item in data])
@@ -742,7 +742,7 @@ class WoT(commands.Cog):
                 key=sort_key,
                 reverse=True
             )
-            await loader.update('Generating mosaic')
+            await loader.update('Generating image')
             _file = await self._generate_mark_image(
                 player,
                 separate_nations,
@@ -848,17 +848,23 @@ class WoT(commands.Cog):
 
         async with ctx.loading(initial_message='Choosing tank') as loader:
             tanks = self.bot.search_tank(tank_search, 'short_name', 5)
+
             # Start dropdown view with 5 close matches of input name
             view = DropdownUI('Choose the tank:', [t.short_name for t in tanks], [t.nation_emote for t in tanks])
             view_message = await ctx.send(view=view)
+
             # Wait untill user selects a choice, or the view runs out of time
             await view.wait()
             values = view.children[0].values
+
             # If choice selected, get the tank object from it
             if values:
                 tank = discord.utils.find(lambda t: t.short_name == values[0], tanks)
+            # Else we cancel
             else:
-                tank = tanks[0] # else just use the first result
+                await view_message.delete()
+                return
+
             # Delete select window
             await view_message.delete()
             await loader.update('Gathering data')
@@ -985,7 +991,7 @@ class WoT(commands.Cog):
 
     @channel_check()
     @commands.cooldown(1, 10, commands.BucketType.user)
-    @commands.command(aliases=['clansearch', 'c'], usage='<clan_search> [clan_region=eu]')
+    @commands.command(aliases=['clansearch', 'c', 'claninfo'], usage='<clan_search> [clan_region=eu]')
     async def clan(self, ctx: Context, clan_search: str, clan_region: RegionConverter = Region.eu):
         '''Uses WoTs API and WoT-life to return clan statistics'''
         async with ctx.typing():
@@ -1002,6 +1008,7 @@ class WoT(commands.Cog):
                 languages = []
                 for abbrv in data['clanview']['profiles'][1]['languages_list']:
                     languages.append(iso639.to_name(abbrv).split(';', maxsplit=1)[0])
+
             except KeyError:
                 languages = ['Not Found']
 
@@ -1122,7 +1129,7 @@ class WoT(commands.Cog):
 
     @channel_check(BigRLDChannelType.recruiters, SmallRLDChannelType.recruiters)
     @commands.cooldown(1, 10, commands.BucketType.user)
-    @commands.command(aliases=['playersearch'], usage='<player_search> [player_region=eu]')
+    @commands.command(aliases=['playersearch', 'p', 'playerinfo'], usage='<player_search> [player_region=eu]')
     async def player(self, ctx: Context, player_search: str, player_region: RegionConverter = Region.eu):
         '''Uses WoTs API and WoT-life to return player statistics'''
         async with ctx.typing():
