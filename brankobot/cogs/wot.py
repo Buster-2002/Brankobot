@@ -1370,13 +1370,13 @@ class WoT(commands.Cog):
     #             )
 
 
-    @commands.group(invoke_without_command=True, aliases=['clanwars', 'gm', 'globalmap'])
+    @commands.group(invoke_without_command=True, aliases=['gm', 'globalmap', 'cw'])
     @commands.cooldown(5, 60, commands.BucketType.guild)
-    async def cw(self, _):
+    async def clanwars(self, _):
         '''Group command for cw clanlogs/battles/rewards/provinces/leaderboards'''
 
-    @cw.command('clanlog', aliases=['history', 'log', 'activity', 'logs'])
-    async def cw_clanlog(self, ctx: Context, clan_search: str = '-RLD-', page: int = 1):
+    @clanwars.command('clanlog', aliases=['history', 'log', 'activity', 'logs'])
+    async def clanwars_clanlog(self, ctx: Context, clan_search: str = '-RLD-', page: int = 1):
         '''Shows a clans activity log'''
         async with ctx.typing():
             clan = await self._search_clan(clan_search, Region.eu)
@@ -1420,8 +1420,8 @@ class WoT(commands.Cog):
             )
             await pages.start(ctx)
 
-    @cw.command('battles')
-    async def cw_battles(self, ctx: Context, clan_search: str = '-RLD-'):
+    @clanwars.command('battles')
+    async def clanwars_battles(self, ctx: Context, clan_search: str = '-RLD-'):
         '''Shows upcoming battles information for specified clan'''
         async with ctx.typing():
             clan = await self._search_clan(clan_search, Region.eu)
@@ -1603,8 +1603,8 @@ class WoT(commands.Cog):
     #             url=f'https://worldoftanks.eu/en/clanwars/rating/alley/#wot&aof_front={event.id}&aof_rating=accounts&aof_filter=search_acc&aof_str={player_search}&aof_page=0&aof_size=1',
     #         )
 
-    @cw.command('provinces', aliases=['prov'])
-    async def cw_provinces(self, ctx: Context, clan_search: str = '-RLD-'):
+    @clanwars.command('provinces', aliases=['prov'])
+    async def clanwars_provinces(self, ctx: Context, clan_search: str = '-RLD-'):
         '''Shows all provinces for specified clan'''
         async with ctx.typing():
             clan = await self._search_clan(clan_search, Region.eu)
@@ -1657,16 +1657,16 @@ class WoT(commands.Cog):
             await pages.start(ctx)
 
 
-    @cw.group('leaderboard', aliases=['top10'])
-    async def cw_leaderboard(self, _):
+    @clanwars.group('leaderboard', aliases=['top10'])
+    async def clanwars_leaderboard(self, _):
         '''Shows top 10 clans and players for the current campaign'''
 
-    @cw_leaderboard.command(
+    @clanwars_leaderboard.command(
         'clans',
         aliases=['clan'],
         usage='[page=1 (page 1 shows clans 1 through 25, page 2 25 through 50, etc)]'
     )
-    async def cw_leaderboard_clans(self, ctx: Context, page: int = 1):
+    async def clanwars_leaderboard_clans(self, ctx: Context, page: int = 1):
         async with ctx.typing():
             page -= 1
             event = await self._get_current_campaign()
@@ -1695,8 +1695,8 @@ class WoT(commands.Cog):
                         **Fame points:** {intcomma(dic['total_fame_points'])}
                         **Needed to ascend:** {dic['fame_points_to_improve_award']}
                         **Trend:** {rank_trend}
-                        **Bond multiplier:** {dic['rewards'][0]['value']}
-                        **Gold reward:** {intcomma(dic['rewards'][1]['value'])}
+                        **Bond multiplier:** {dic['rewards'][0]['value'] if dic['rewards'] else 'N/A'}
+                        **Gold reward:** {intcomma(dic['rewards'][1]['value']) if dic['rewards'] else 'N/A'}
                     ''')
                 ))
 
@@ -1712,12 +1712,12 @@ class WoT(commands.Cog):
             )
             await pages.start(ctx)
 
-    @cw_leaderboard.command(
+    @clanwars_leaderboard.command(
         'players',
         aliases=['player', 'people'],
         usage='[page=1 (page 1 shows players 1 through 25, page 2 25 through 50, etc)]'
     )
-    async def cw_leaderboard_players(self, ctx: Context, page: int = 1):
+    async def clanwars_leaderboard_players(self, ctx: Context, page: int = 1):
         async with ctx.typing():
             page -= 1
             event = await self._get_current_campaign()
@@ -1739,16 +1739,16 @@ class WoT(commands.Cog):
             # Formatting player leaderboard
             data_formatted = []
             for dic in top_players:
+                clan_tag = dic['clan'].get('tag', 'N/A')
                 rank_trend = self._get_trend(dic['rank_change'])
                 data_formatted.append((
                     f'#{dic["rank"]} - {dic["name"]}',
                     dedent(f'''
                         **Fame points:** {intcomma(dic['fame_points'])}
-                        **Clan:** [{dic['clan']['tag']}](https://wot-life.com/eu/clan/{dic['clan']['tag']}/) (#{dic['clan_rank']} ranking)
+                        **Clan:** [{clan_tag}](https://wot-life.com/eu/clan/{clan_tag}/) (#{dic['clan_rank']} ranking)
                         **Trend:** {rank_trend}
                         **Battles played:** {dic['battles_count']}
-                        **Rewards:** {', '.join(dic['rewards'][0]['data']['styles_list']).replace('_', ' ')}, {intcomma(dic['rewards'][2]['value'])} bonds{', tank' if dic['rewards'][1]['value'] else ''}
-                    ''')
+                    ''') + (f"**Rewards:** {', '.join(dic['rewards'][0]['data']['styles_list']).replace('_', ' ')}, {intcomma(dic['rewards'][2]['value'])} bonds{', tank' if dic['rewards'][1]['value'] else ''}" if dic['rewards'] else '')
                 ))
 
             # Paginating player leaderboard
