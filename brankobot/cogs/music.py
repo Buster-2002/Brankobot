@@ -338,9 +338,9 @@ class Music(commands.Cog):
     @is_connected()
     @channel_check()
     @role_check()
-    @commands.command()
+    @commands.command(aliases=['next'])
     async def skip(self, ctx: Context):
-        '''Skips currently playing song'''
+        '''Skips currently playing song and starts playing next in queue'''
         voice_client = ctx.voice_client
         if voice_client is None or voice_client.is_playing() is False:
             raise NotPlaying()
