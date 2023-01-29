@@ -81,23 +81,6 @@ class Fun(commands.Cog):
             'outlook not so good',
             'its very doubtful'
         ]
-        self._rand_responses_1 = [
-            'on a scale of {n1} to {n2} i think {num}',
-            'from {n1} to {n2} maybe {num}?',
-            'i choose {num} (from {n1} to {n2})'
-        ]
-        self._rand_responses_2 = [
-            'maybe {num}%?',
-            'probably {num}%',
-            '{num}%'
-        ]
-        self._rand_responses_3 = [
-            'definitely {num}.',
-            'i guess {num}',
-            'maybe {num}?',
-            'uhhh.. {num}?',
-            'possibly {num}'
-        ]
 
 
     @staticmethod
@@ -307,7 +290,7 @@ class Fun(commands.Cog):
 
 
     @role_check(BigRLDRoleType.member, SmallRLDRoleType.member, BigRLDRoleType.onlyfans, BigRLDRoleType.small_rld)
-    @commands.cooldown(1, 60 * 60 * 24, commands.BucketType.user)
+    @commands.cooldown(1, 60 * 60 * 12, commands.BucketType.user)
     @commands.command(aliases=['createimage', 'dall-e', 'dalle'])
     async def generateimage(self, ctx: Context, size: Optional[int] = 2, *, prompt: str):
         '''Generates an image from your text'''
@@ -326,6 +309,7 @@ class Fun(commands.Cog):
                     response_format='b64_json'
                 )
                 data = response['data'][0]['b64_json']
+
             except openai.InvalidRequestError:
                 await ctx.send('Invalid request (filtered response), try again')
                 self.generateimage.reset_cooldown(ctx)
@@ -338,7 +322,7 @@ class Fun(commands.Cog):
             fp.seek(0)
 
             await loader.update('Uploading')
-            await ctx.send(file=discord.File(fp, 'image.png'))
+            await ctx.send_response(image='attachment://image.png', files=discord.File(fp, 'image.png'))
 
 
     @commands.is_owner()
@@ -456,31 +440,32 @@ class Fun(commands.Cog):
                 break
 
 
-    @channel_check(BigRLDChannelType.memes, SmallRLDChannelType.memes)
-    @commands.cooldown(1, 3, commands.BucketType.user)
-    @commands.command(aliases=['randommeme', 'meme'])
-    async def reddit(self, ctx: Context, subreddit: str = 'memes'):
-        '''Returns a random post from a subreddit'''
-        r = await self.bot.AIOHTTP_SESSION.get(f'https://meme-api.herokuapp.com/gimme/{subreddit}')
-        data = await r.json()
-        try:
-            if data['nsfw'] is False:
-                fields = [
-                    ('Subreddit', f'[{data["subreddit"]}](https://www.reddit.com/r/{data["subreddit"]})'),
-                    ('Author', f'[{data["author"]}](https://www.reddit.com/r/{data["author"]})'),
-                    ('Upvotes', f'{data["ups"]} 👍🏻')
-                ]
-                await ctx.send_response(
-                    fields=fields,
-                    title=data['title'],
-                    image=data['url'],
-                    url=data['postLink']
-                )
-            else:
-                await ctx.reply('Can\'t send NSFW stuff', delete_after=60, mention_author=False)
+    # ---- API DOESNT WORK ANYMORE ----
+    # @channel_check(BigRLDChannelType.memes, SmallRLDChannelType.memes)
+    # @commands.cooldown(1, 3, commands.BucketType.user)
+    # @commands.command(aliases=['randommeme', 'meme'])
+    # async def reddit(self, ctx: Context, subreddit: str = 'memes'):
+    #     '''Returns a random post from a subreddit'''
+    #     r = await self.bot.AIOHTTP_SESSION.get(f'https://meme-api.herokuapp.com/gimme/{subreddit}')
+    #     data = await r.json()
+    #     try:
+    #         if data['nsfw'] is False:
+    #             fields = [
+    #                 ('Subreddit', f'[{data["subreddit"]}](https://www.reddit.com/r/{data["subreddit"]})'),
+    #                 ('Author', f'[{data["author"]}](https://www.reddit.com/r/{data["author"]})'),
+    #                 ('Upvotes', f'{data["ups"]} 👍🏻')
+    #             ]
+    #             await ctx.send_response(
+    #                 fields=fields,
+    #                 title=data['title'],
+    #                 image=data['url'],
+    #                 url=data['postLink']
+    #             )
+    #         else:
+    #             await ctx.reply('Can\'t send NSFW stuff', delete_after=60, mention_author=False)
 
-        except KeyError:
-            await ctx.reply(f'Couldn\'t find subreddit {subreddit}', delete_after=60, mention_author=False)
+    #     except KeyError:
+    #         await ctx.reply(f'Couldn\'t find subreddit {subreddit}', delete_after=60, mention_author=False)
 
 
     @commands.is_owner()
@@ -513,6 +498,7 @@ class Fun(commands.Cog):
         await ctx.send(f'https://strawpoll.com/{r["content_id"]}')
 
 
+    # ---- SOME KIND OF BUG WITH BIRTHDAY CHECKING ----
     # @role_check(BigRLDRoleType.member, BigRLDRoleType.onlyfans, SmallRLDRoleType.member)
     # @commands.cooldown(1, 300, commands.BucketType.user)
     # @commands.group(
