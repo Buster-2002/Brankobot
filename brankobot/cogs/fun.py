@@ -306,7 +306,7 @@ class Fun(commands.Cog):
         size = sizes.get(size, sizes[2])
         async with ctx.loading(initial_message='Generating') as loader:
             try:
-                response = openai.Image.create(
+                response = await openai.Image.acreate(
                     prompt=prompt,
                     n=1,
                     size=size,
@@ -337,7 +337,7 @@ class Fun(commands.Cog):
             flags.personality = self.bot.PERSONALITY
 
         # Generate AI completion with flags
-        response = openai.Completion.create(
+        response = await openai.Completion.acreate(
             prompt=flags.personality + ' ' + flags.context + ' ' + prompt,
             temperature=flags.temperature,
             max_tokens=flags.max_tokens,
@@ -373,7 +373,7 @@ class Fun(commands.Cog):
                         stop_sequence = [' Human:', ' AI:']
 
                 # Generate AI completion
-                response = openai.Completion.create(
+                response = await openai.Completion.acreate(
                     prompt=self.bot.PERSONALITY + '\n' + prompt,
                     temperature=0.6,
                     max_tokens=200,
@@ -402,7 +402,7 @@ class Fun(commands.Cog):
 
         # Generate AI completion
         try:
-            response = openai.Completion.create(
+            response = await openai.Completion.acreate(
                 prompt=self.bot.PERSONALITY + prompt,
                 temperature=0.8,
                 max_tokens=70,
