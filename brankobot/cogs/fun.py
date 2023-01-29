@@ -330,12 +330,13 @@ class Fun(commands.Cog):
 
 
     @commands.is_owner()
-    @commands.command(aliases=['adminai', 'adminaskai'])
+    @commands.command(aliases=['adminai', 'adminaskai'], hidden=True)
     async def adminask(self, ctx: Context, prompt: commands.clean_content, *, flags: OpenAIFlags):
-        '''Ask the bot a question using the OpenAI text-davinci 3 model'''
+        '''Same as ask but admin only and more options'''
         if flags.personality is None:
             flags.personality = self.bot.PERSONALITY
 
+        # Generate AI completion with flags
         response = openai.Completion.create(
             prompt=flags.personality + ' ' + flags.context + ' ' + prompt,
             temperature=flags.temperature,
@@ -349,25 +350,44 @@ class Fun(commands.Cog):
 
     @role_check(BigRLDRoleType.member, SmallRLDRoleType.member, BigRLDRoleType.onlyfans, BigRLDRoleType.small_rld)
     @commands.cooldown(5, 60 * 5, commands.BucketType.guild)
-    @commands.command(aliases=['ai', 'askai'])
+    @commands.command(aliases=['ai', 'askai', 'prompt', 'complete'])
     async def ask(self, ctx: Context, *, prompt: commands.clean_content):
-        '''Ask the bot a question using the OpenAI text-davinci 3 model. Note that the bot does not have or store any context.'''
+        '''Ask the bot a question and he will generate an AI response'''
+        stop_sequence = None
+
         try:
             async with ctx.typing():
+                # If the message is replying to another message by the bot, we will provide this as context
+                # We only do this for one message, so you can't have a real conversation
+                # Made by using this example: https://beta.openai.com/examples/default-chat
+                if ctx.message.reference:
+                    # iqr = Initial Question Response
+                    iqr = await ctx.channel.fetch_message(ctx.message.reference.message_id)
+
+                    # Check if the message is by brankobot and is replying to a message
+                    if iqr.author == self.bot.user and iqr.reference is not None:
+                        iq = await ctx.channel.fetch_message(iqr.reference.message_id)
+                        iq = iq.content.lstrip(f'{ctx.prefix}ask ').strip()
+                        iqr = iqr.content.strip()
+                        prompt = f'Human: {iq}\nAI: {iqr}\nHuman: {prompt}\nAI: '
+                        stop_sequence = [' Human:', ' AI:']
+
+                # Generate AI completion
                 response = openai.Completion.create(
-                    prompt=self.bot.PERSONALITY + prompt,
+                    prompt=self.bot.PERSONALITY + '\n' + prompt,
                     temperature=0.6,
                     max_tokens=200,
-                    model='text-davinci-003'
+                    model='text-davinci-003',
+                    stop=stop_sequence
                 )
-                await ctx.send(response["choices"][0]["text"].strip(" \n"))
+                await ctx.reply(response["choices"][0]["text"].strip(" \n"), mention_author=False)
 
         except openai.OpenAIError:
-            await ctx.send(f'OpenAI error try again lata')
+            await ctx.send(f'OpenAI error try again lata {Emote.joy}')
 
 
     @is_connected()
-    @commands.is_owner()
+    @role_check(BigRLDRoleType.member, SmallRLDRoleType.member, BigRLDRoleType.small_rld)
     @commands.cooldown(1, 60 * 15, commands.BucketType.guild)
     @commands.command(aliases=['voiceai', 'voiceaskai', 'tts'])
     async def voiceask(self, ctx: Context, *, prompt: str):
@@ -380,7 +400,7 @@ class Fun(commands.Cog):
             self.voiceask.reset_cooldown(ctx)
             return
 
-        # Generate AI response
+        # Generate AI completion
         try:
             response = openai.Completion.create(
                 prompt=self.bot.PERSONALITY + prompt,
