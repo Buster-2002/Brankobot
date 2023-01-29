@@ -30,8 +30,6 @@ from textwrap import dedent
 from discord.ext import commands
 from discord.utils import escape_markdown
 
-from .utils.enums import BigRLDChannelType, SmallRLDChannelType
-
 
 class NewHelpCommand(commands.HelpCommand):
     def __init__(self):
