@@ -746,9 +746,6 @@ class Events(commands.Cog):
             exc = f'you can\'t use this command {Emote.joy}'
 
         elif isinstance(error, commands.CommandOnCooldown):
-            # if ctx.author.id in self.bot.owner_ids:
-            #     ctx.command.reset_cooldown(ctx)
-            #     return
             exc = f'the command is on cooldown ({error.type.name} scope). try again in {naturaldelta(error.retry_after)} {Emote.joy}'
 
         elif isinstance(error, commands.MissingRequiredArgument):
