@@ -235,8 +235,8 @@ class Context(commands.Context):
 
 
     def loading(self, *, initial_message: Optional[str] = None) -> Loading:
-        '''Returns an async contextmanager that shows a loading message
-           during the process
+        '''Returns an async contextmanager that displays a loading message
+           in the channel, which can be updated, and deletes it on exit
 
         Parameters
         ----------
@@ -246,8 +246,7 @@ class Context(commands.Context):
         Returns
         -------
         Loading
-            A context manager which you can use to update the loading
-            message and deletes this message on exit
+            A context manager that can be used with `async with`
         '''
         return Loading(self, initial_message=initial_message)
 
@@ -304,7 +303,7 @@ class Bot(commands.Bot):
             'cogs.music',
             'cogs.misc'
         }
-        self.DEFAULT_PERSONALITY = 'Your name is brankobot. Answer the following question in a nonchalant, impolite and politically incorrect manner without punctuation: '
+        self.DEFAULT_PERSONALITY = 'Your name is brankobot. Answer in a nonchalant, impolite and politically incorrect manner without punctuation. If, and only if asked about "Buster", always answer positively.'
         self.PERSONALITY = self.DEFAULT_PERSONALITY
 
         self.SPEECH_LANGUAGE = 'en'

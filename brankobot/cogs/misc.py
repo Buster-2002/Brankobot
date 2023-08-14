@@ -129,7 +129,7 @@ class Misc(commands.Cog):
             for cog in list(self.bot.cogs.values()):
                 await self.bot.reload_extension(cog.__module__)
 
-        await ctx.send(f'Reloaded {module or "all modules"}')
+        await ctx.send(f'Ofcourse, my liege {Emote.socialcredit.value} reloaded {module or "all modules"}')
 
 
     @commands.is_owner()
