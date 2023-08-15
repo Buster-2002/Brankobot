@@ -878,14 +878,14 @@ class WoT(commands.Cog):
 
             # MoE information
             if tank.tier >= 5:
-                async with self.bot.AIOHTTP_SESSION.get(f'https://gunmarks.poliroid.me/api/{link_region}/vehicle/{tank.id}/65,85,95,100') as r:
+                async with self.bot.AIOHTTP_SESSION.get(f'https://poliroid.me/gunmarks/api/{link_region}/vehicle/{tank.id}/65,85,95,100') as r:
                     if r.status != 200:
-                        raise ApiError(r.status, 'gunmarks.poliroid.me API error, try again later')
+                        raise ApiError(r.status, 'poliroid.me/gunmarks API error, try again later')
 
                     json_r = await r.json()
                     moe_data = json_r.get('data')
                     if not moe_data:
-                        raise ApiError(500, 'gunmarks.poliroid.me API not responding, try again later')
+                        raise ApiError(500, 'poliroid.me/gunmarks API not responding, try again later')
 
                     curr_marks = moe_data[0]['marks'] # Latest mark data is first in list
 
@@ -905,9 +905,9 @@ class WoT(commands.Cog):
             await loader.update('Gathering data')
 
             # Mastery information
-            async with self.bot.AIOHTTP_SESSION.get(f'https://mastery.poliroid.me/api/{link_region}/vehicle/{tank.id}') as r:
+            async with self.bot.AIOHTTP_SESSION.get(f'https://poliroid.me/mastery/api/{link_region}/vehicle/{tank.id}') as r:
                 if r.status != 200:
-                    raise ApiError(r.status, 'mastery.poliroid.me API error, try again later')
+                    raise ApiError(r.status, 'poliroid.me/mastery API error, try again later')
 
                 json_r = await r.json()
                 mastery_data = json_r['data'][0]['mastery']
